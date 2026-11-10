@@ -25,8 +25,10 @@ must stay green and must keep `if-no-files-found: error`.
 ## Phase checklist
 
 - [x] Phase 0 — repository, scaffold, green CI
-- [ ] Phase 0 cont. — Amazon developer sign-in, skill created, Google
-      Web credential with Amazon redirect URIs
+- [x] Phase 0 cont. — Amazon developer sign-in (ASK CLI profile
+      `default`), skill created via SMAPI
+- [ ] Phase 0 cont. — Google Web credential with the three Amazon
+      redirect URIs (user step in Google Cloud console)
 - [ ] Phase 1 — Gmail API proof of life
 - [ ] Phase 2 — skill skeleton in the Alexa simulator (ASK SDK)
 - [ ] Phase 3 — account linking on a real Echo (pivotal; decides
@@ -37,6 +39,16 @@ must stay green and must keep `if-no-files-found: error`.
       deploy workflow
 - [ ] Phase 7 — optional extras (mark as read, contacts by name,
       cross-session drafts, APL)
+
+## Account identifiers
+
+- Vendor ID: `M3BE8RO26ZG468`
+- Skill ID: `amzn1.ask.skill.9c554724-207c-464e-a0e2-ae3158077bf5`
+- Google Cloud project (shared with VoiceGmail): `359413552450`
+- Amazon redirect URIs for the Google OAuth client:
+  - `https://pitangui.amazon.com/api/skill/link/M3BE8RO26ZG468`
+  - `https://layla.amazon.com/api/skill/link/M3BE8RO26ZG468`
+  - `https://alexa.amazon.co.jp/api/skill/link/M3BE8RO26ZG468`
 
 ## Key files
 

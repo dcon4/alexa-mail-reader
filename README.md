@@ -9,7 +9,9 @@ Plan: see the "Alexa Gmail Skill Plan" report in
 
 ## Status
 
-Phase 0 (repository and CI) is in progress. Phases follow the plan
+Phase 0 is in progress: repository and CI are green, the skill exists
+on Amazon's side (skill ID `amzn1.ask.skill.9c554724-207c-464e-a0e2-ae3158077bf5`),
+and the Google Web credential is pending. Phases follow the plan
 report: accounts, Gmail proof, skill skeleton, account linking on a
 real Echo, reading mail, reply/compose, hardening. See `AGENTS.md`
 for the live phase checklist.
