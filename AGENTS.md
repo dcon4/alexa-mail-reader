@@ -27,12 +27,13 @@ must stay green and must keep `if-no-files-found: error`.
 - [x] Phase 0 — repository, scaffold, green CI
 - [x] Phase 0 cont. — Amazon developer sign-in (ASK CLI profile
       `default`), skill created via SMAPI
-- [ ] Phase 0 cont. — Google Web credential with the three Amazon
-      redirect URIs (user step in Google Cloud console)
-- [ ] Phase 1 — Gmail API proof of life
-- [ ] Phase 2 — skill skeleton in the Alexa simulator (ASK SDK)
-- [ ] Phase 3 — account linking on a real Echo (pivotal; decides
-      7.1 vs 7.2)
+- [x] Phase 0 cont. — Google Web credential created (Client ID below);
+      Client Secret stays in the user's browser, never in chat or repo
+- [x] Phase 2 — full interaction model + ASK SDK handler skeleton
+      (model uploaded to SMAPI; simulator/endpoint test pending)
+- [ ] Phase 3 — Gmail proof folded in per plan section 14 (Phase 1
+      collapsed): Google consent + skill account linking on a real
+      Echo (pivotal; decides plan 7.1 vs 7.2)
 - [ ] Phase 4 — reading mail
 - [ ] Phase 5 — reply and compose with confirmation
 - [ ] Phase 6 — hardening, log share endpoint, verbose toggle,
@@ -40,11 +41,17 @@ must stay green and must keep `if-no-files-found: error`.
 - [ ] Phase 7 — optional extras (mark as read, contacts by name,
       cross-session drafts, APL)
 
+Note: plan Phase 1 (standalone Gmail proof script) is folded into
+Phase 3 — it would need an extra OAuth credential and a secret handoff
+for no validation that Phase 3 does not already provide.
+
 ## Account identifiers
 
 - Vendor ID: `M3BE8RO26ZG468`
 - Skill ID: `amzn1.ask.skill.9c554724-207c-464e-a0e2-ae3158077bf5`
 - Google Cloud project (shared with VoiceGmail): `359413552450`
+- Google Web OAuth Client ID (public):
+  `359413552450-0v005jcolutf5ctj40mnik8so436qdl6.apps.googleusercontent.com`
 - Amazon redirect URIs for the Google OAuth client:
   - `https://pitangui.amazon.com/api/skill/link/M3BE8RO26ZG468`
   - `https://layla.amazon.com/api/skill/link/M3BE8RO26ZG468`

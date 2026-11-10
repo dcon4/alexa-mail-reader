@@ -27,10 +27,225 @@
             "read my unread email",
             "read my mail",
             "what's in my inbox",
-            "check my email"
+            "check my email",
+            "check my mail",
+            "open my inbox",
+            "what's new"
+          ]
+        },
+        {
+          "name": "ReadLatestIntent",
+          "slots": [],
+          "samples": [
+            "read my latest email",
+            "read the latest one",
+            "read my newest email",
+            "read the newest message"
+          ]
+        },
+        {
+          "name": "ReadMessageIntent",
+          "slots": [
+            {
+              "name": "messageNumber",
+              "type": "AMAZON.NUMBER"
+            }
+          ],
+          "samples": [
+            "read message {messageNumber}",
+            "open message {messageNumber}",
+            "read number {messageNumber}",
+            "read email {messageNumber}",
+            "open email {messageNumber}"
+          ]
+        },
+        {
+          "name": "ReadCurrentIntent",
+          "slots": [],
+          "samples": [
+            "read it",
+            "read this one",
+            "read the message",
+            "go ahead",
+            "continue",
+            "keep reading"
+          ]
+        },
+        {
+          "name": "NextMessageIntent",
+          "slots": [],
+          "samples": [
+            "next",
+            "next message",
+            "go on",
+            "keep going",
+            "skip this one"
+          ]
+        },
+        {
+          "name": "PreviousMessageIntent",
+          "slots": [],
+          "samples": [
+            "previous",
+            "previous message",
+            "go back",
+            "earlier",
+            "read the previous one"
+          ]
+        },
+        {
+          "name": "RepeatIntent",
+          "slots": [],
+          "samples": [
+            "say that again",
+            "read it again",
+            "repeat",
+            "start over"
+          ]
+        },
+        {
+          "name": "ReplyIntent",
+          "slots": [],
+          "samples": [
+            "reply",
+            "reply to this",
+            "respond to this",
+            "send a reply",
+            "write back"
+          ]
+        },
+        {
+          "name": "ComposeIntent",
+          "slots": [
+            {
+              "name": "recipient",
+              "type": "AMAZON.SearchQuery"
+            },
+            {
+              "name": "subject",
+              "type": "AMAZON.SearchQuery"
+            },
+            {
+              "name": "body",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "compose an email",
+            "write an email",
+            "send an email",
+            "email {recipient}",
+            "send an email to {recipient}",
+            "compose an email to {recipient}",
+            "write an email to {recipient}"
+          ]
+        },
+        {
+          "name": "AddBodyIntent",
+          "slots": [
+            {
+              "name": "addedText",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "add {addedText}",
+            "say {addedText}",
+            "my reply is {addedText}",
+            "continue with {addedText}"
+          ]
+        },
+        {
+          "name": "ConfirmSendIntent",
+          "slots": [],
+          "samples": [
+            "send it",
+            "send",
+            "yes",
+            "confirm",
+            "do it"
+          ]
+        },
+        {
+          "name": "DiscardIntent",
+          "slots": [],
+          "samples": [
+            "discard",
+            "cancel that",
+            "no",
+            "delete that",
+            "never mind",
+            "forget it"
+          ]
+        },
+        {
+          "name": "SearchIntent",
+          "slots": [
+            {
+              "name": "sender",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "search email from {sender}",
+            "find email from {sender}",
+            "search for email from {sender}",
+            "messages from {sender}",
+            "email from {sender}"
+          ]
+        },
+        {
+          "name": "CountIntent",
+          "slots": [],
+          "samples": [
+            "how many unread",
+            "how many emails",
+            "how many messages",
+            "what's my unread count",
+            "count my unread"
           ]
         }
       ]
-    }
+    },
+    "dialog": {
+      "delegationStrategy": "ALWAYS",
+      "intents": [
+        {
+          "name": "ComposeIntent",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "recipient",
+              "type": "AMAZON.SearchQuery",
+              "elicitationRequired": true,
+              "confirmationRequired": false,
+              "prompts": {
+                "elicitation": "Elicit.Slot.ComposeIntent.recipient"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "prompts": [
+      {
+        "id": "Elicit.Slot.ComposeIntent.recipient",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Who should I send it to?"
+          },
+          {
+            "type": "PlainText",
+            "value": "Who is the recipient?"
+          },
+          {
+            "type": "PlainText",
+            "value": "Tell me the email address or name of the person to send to."
+          }
+        ]
+      }
+    ]
   }
 }
