@@ -1,0 +1,29 @@
+{
+  "manifest": {
+    "publishingInformation": {
+      "locales": {
+        "en-US": {
+          "name": "Mail Reader",
+          "summary": "Reads your unread email and sends replies, by voice.",
+          "examplePhrases": [
+            "Alexa, open mail reader",
+            "Alexa, ask mail reader to read my email",
+            "Alexa, ask mail reader how many unread"
+          ],
+          "keywords": [
+            "email",
+            "mail",
+            "inbox",
+            "messages"
+          ]
+        }
+      },
+      "isAvailable": true,
+      "category": "NEWS"
+    },
+    "apis": {
+      "custom": {}
+    },
+    "manifestVersion": "1.0"
+  }
+}

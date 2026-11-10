@@ -1,0 +1,36 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "mail reader",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "ReadUnreadIntent",
+          "slots": [],
+          "samples": [
+            "read my email",
+            "read my unread email",
+            "read my mail",
+            "what's in my inbox",
+            "check my email"
+          ]
+        }
+      ]
+    }
+  }
+}

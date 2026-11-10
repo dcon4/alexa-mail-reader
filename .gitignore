@@ -1,0 +1,8 @@
+node_modules/
+*.zip
+.ask/
+.env
+.env.*
+*.local
+secrets*
+!secrets*.example

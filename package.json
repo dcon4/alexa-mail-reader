@@ -1,0 +1,13 @@
+{
+  "name": "alexa-mail-reader",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Alexa skill that reads and replies to Gmail by voice",
+  "license": "UNLICENSED",
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
