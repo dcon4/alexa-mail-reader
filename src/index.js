@@ -2,8 +2,9 @@
 
 const Alexa = require('ask-sdk-core');
 
-const NOT_CONNECTED =
-  'Gmail is not connected in this test build yet.';
+const NOT_LINKED =
+  'This skill needs to be linked to your Gmail account first. ' +
+  'Open the Alexa app and follow the link on the card I just sent.';
 const LINKED = 'Mail reader is linked and working.';
 const MENU =
   'You can say read my email, next, previous, reply, compose, how many unread, or stop.';
@@ -11,11 +12,21 @@ const MENU =
 function isLinked(handlerInput) {
   const context = handlerInput.requestEnvelope.context || {};
   const system = context.System || {};
-  return Boolean(system.apiAccessToken);
+  const user = system.user || {};
+  return Boolean(user.accessToken);
 }
 
 function statusLine(handlerInput) {
-  return isLinked(handlerInput) ? LINKED : NOT_CONNECTED;
+  return isLinked(handlerInput) ? LINKED : NOT_LINKED;
+}
+
+function linkAccountResponse(handlerInput, state) {
+  saveState(handlerInput, state || sessionState(handlerInput));
+  return handlerInput.responseBuilder
+    .speak(NOT_LINKED)
+    .withLinkAccountCard()
+    .reprompt(NOT_LINKED)
+    .getResponse();
 }
 
 function sessionState(handlerInput) {
@@ -33,6 +44,9 @@ function saveState(handlerInput, state) {
 }
 
 function keepOpen(handlerInput, speech, repromptText, state) {
+  if (!isLinked(handlerInput)) {
+    return linkAccountResponse(handlerInput, state);
+  }
   return saveState(handlerInput, state || sessionState(handlerInput))
     .speak(speech)
     .reprompt(repromptText || MENU)
@@ -46,6 +60,9 @@ const LaunchRequestHandler = {
     );
   },
   handle(handlerInput) {
+    if (!isLinked(handlerInput)) {
+      return linkAccountResponse(handlerInput);
+    }
     return keepOpen(
       handlerInput,
       `Mail reader. ${statusLine(handlerInput)} ${MENU}`,
@@ -64,6 +81,9 @@ const ComposeIntentHandler = {
   },
   handle(handlerInput) {
     const req = handlerInput.requestEnvelope.request;
+    if (!isLinked(handlerInput)) {
+      return linkAccountResponse(handlerInput);
+    }
     if (req.dialogState === 'IN_PROGRESS') {
       return handlerInput.responseBuilder
         .addDirective({ type: 'Dialog.Delegate' })
@@ -105,6 +125,9 @@ const MenuIntentHandler = {
   },
   handle(handlerInput) {
     const req = handlerInput.requestEnvelope.request;
+    if (!isLinked(handlerInput)) {
+      return linkAccountResponse(handlerInput);
+    }
     const name = req.intent.name;
     const slots = req.intent.slots || {};
     const state = sessionState(handlerInput);

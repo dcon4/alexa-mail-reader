@@ -21,7 +21,12 @@
       "category": "NEWS"
     },
     "apis": {
-      "custom": {}
+      "custom": {
+        "endpoint": {
+          "uri": "https://example.com/alexa",
+          "sslCertificateType": "Trusted"
+        }
+      }
     },
     "manifestVersion": "1.0"
   }

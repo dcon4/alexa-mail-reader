@@ -30,10 +30,16 @@ must stay green and must keep `if-no-files-found: error`.
 - [x] Phase 0 cont. — Google Web credential created (Client ID below);
       Client Secret stays in the user's browser, never in chat or repo
 - [x] Phase 2 — full interaction model + ASK SDK handler skeleton
-      (model uploaded to SMAPI; simulator/endpoint test pending)
+      (model uploaded to SMAPI; 24 tests green)
 - [ ] Phase 3 — Gmail proof folded in per plan section 14 (Phase 1
       collapsed): Google consent + skill account linking on a real
       Echo (pivotal; decides plan 7.1 vs 7.2)
+      - Account linking client set on development stage (AUTH_CODE → Google)
+      - Skill enabled for development (enablement PUT 204)
+      - Unlinked responses return LinkAccount card + plan wording
+      - Linked detection uses `context.System.user.accessToken`
+      - Local debug session via `ask run` (1 hour TTL) for device routing
+      - Pending: user enables skill on Echo, links Google, hears placeholder
 - [ ] Phase 4 — reading mail
 - [ ] Phase 5 — reply and compose with confirmation
 - [ ] Phase 6 — hardening, log share endpoint, verbose toggle,
