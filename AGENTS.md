@@ -93,13 +93,24 @@ must stay green and must keep `if-no-files-found: error`.
         response mirrors the position to
         `~/.config/alexa-mail-reader/positions.json` (mode 600, outside
         the repo; override with `POSITION_STORE_PATH`); a new session
-        hydrates the saved list and Launch speaks "Welcome back" with
-        the saved message summary instead of starting over; a one-shot
-        "ask mail reader to read it" resumes at the saved message;
-        "read my email" still refreshes from the top; "how many
-        unread" no longer resets the place in the list
+        hydrates the saved list before dispatch; Launch speaks
+        "Welcome back" with the saved message summary; the same
+        greeting also fires on cold ask-entries (the launch-phrase
+        block below makes ask the real entry point): cold "read it"
+        says "Welcome back" then reads/continues the saved message,
+        cold "how many unread" appends "You were last on: ... Say
+        read it to continue"; "read my email" still refreshes from the
+        top; "how many unread" never resets the place in the list
+      - Launch phrases BLOCKED on this account (2026-11-11): "Alexa,
+        open/launch/start mail reader" answers "Sorry, that is not
+        supported on this device" — Alexa+ intercepts launch phrases
+        for unpublished dev skills (known Amazon-side issue; verified
+        our side healthy: SMAPI simulation invokes the skill fine,
+        enablement/model/manifest intact, zero requests reach us during
+        failures). Reliable entries are the ask forms: "Alexa, ask
+        mail reader to read my email / read it / how many unread"
       - Progressive "Checking your mail" phrase deferred to Phase 6
-      - 70 tests green (handler + gmail + text + speech + store)
+      - 72 tests green (handler + gmail + text + speech + store)
       - Pending: scripted acceptance run — open, count, read message 1
         with a continue hop on the long HTML fixture, jump to message
         3, search from a sender, stop; every utterance first try

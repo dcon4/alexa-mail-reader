@@ -601,8 +601,40 @@ test('a fresh session read it resumes at the saved message', async () => {
   );
   assert.equal(fullId, 'id2');
   const speech = speechOf(res.response);
+  assert.match(speech, /Welcome back/);
   assert.match(speech, /Fishing trip/);
-  assert.doesNotMatch(speech, /Welcome back/);
+  assert.equal(res.response.shouldEndSession, false);
+});
+
+test('cold how many unread adds the last-on line from the saved position', async () => {
+  seedPosition({
+    msgIds: ['id1', 'id2'],
+    metas: META_FIXTURE,
+    msgIndex: 1,
+    chunkIndex: 2,
+    unreadCount: 2,
+    lastSpeech: '',
+  });
+  const res = await invoke(
+    intentEvent('CountIntent', { linked: true, attributes: {} }),
+  );
+  const speech = speechOf(res.response);
+  assert.match(speech, /2 unread messages/);
+  assert.match(speech, /You were last on/);
+  assert.match(speech, /Fishing trip/);
+  assert.match(speech, /Say read it to continue/);
+  assert.equal(res.sessionAttributes.msgIndex, 1);
+  assert.equal(res.sessionAttributes.chunkIndex, 2);
+});
+
+test('cold how many unread without a store keeps the plain menu', async () => {
+  const res = await invoke(
+    intentEvent('CountIntent', { linked: true, attributes: {} }),
+  );
+  const speech = speechOf(res.response);
+  assert.match(speech, /2 unread messages/);
+  assert.doesNotMatch(speech, /You were last on/);
+  assert.match(speech, /You can say read it/);
 });
 
 test('read my email still starts the list from the top with a saved position', async () => {

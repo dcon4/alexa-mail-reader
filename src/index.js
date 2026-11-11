@@ -380,6 +380,9 @@ const MenuIntentHandler = {
     const name = req.intent.name;
     const slots = req.intent.slots || {};
     const state = withState(handlerInput);
+    const rawAttrs =
+      handlerInput.attributesManager.getSessionAttributes() || {};
+    const justResumed = Boolean(rawAttrs.resumed && state.msgIds.length);
     let speech;
 
     try {
@@ -424,6 +427,21 @@ const MenuIntentHandler = {
           if (!state.msgIds.length) await loadUnread(state);
           if (!state.msgIds.length) {
             speech = NO_UNREAD;
+            break;
+          }
+          if (justResumed) {
+            const meta = state.metas[state.msgIndex];
+            if (state.chunkIndex < 0) {
+              speech =
+                'Welcome back. ' +
+                (await readCurrentBody(handlerInput, state));
+            } else {
+              speech =
+                'Welcome back. ' +
+                (meta ? sp.summaryLine(meta) : '') +
+                '<break time="500ms"/>' +
+                (await continueBody(handlerInput, state));
+            }
             break;
           }
           if (state.chunkIndex < 0) {
@@ -542,8 +560,17 @@ const MenuIntentHandler = {
           speech =
             'You have ' +
             sp.countText(state.unreadCount, LIST_CAP) +
-            '.<break time="500ms"/>' +
-            MENU;
+            '.<break time="500ms"/>';
+          const lastMeta = justResumed && state.metas[state.msgIndex];
+          if (lastMeta) {
+            speech +=
+              'You were last on: ' +
+              sp.summaryLine(lastMeta) +
+              '<break time="500ms"/>' +
+              'Say read it to continue, or read my email for a fresh list.';
+          } else {
+            speech += MENU;
+          }
           break;
         }
         case 'AMAZON.HelpIntent':
