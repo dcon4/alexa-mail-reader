@@ -46,8 +46,15 @@ must stay green and must keep `if-no-files-found: error`.
         Development"
       - Echo must be registered to the developer Amazon account;
         locale en-US
-      - Pending: user says "Alexa, open mail reader" on Echo; unlinked
-        reply + LinkAccount card; then Google link; then linked reply
+      - Echo invoke failed: "I am unable to reach the requested skill"
+        (Alexa hit example.com/alexa, not local debug WS; zero
+        "Skill request" lines in ask-run.log despite WS ESTAB)
+      - Diagnostic: developer console Test page simulator while ask run
+        is up; if no Skill request in log, local debug is not routing
+      - Fallback if local debug will not route: ngrok HTTPS tunnel
+        (binary at /home/dwc/.local/bin/ngrok) or Phase 6 Lambda
+      - Pending: simulator reachability check; then Echo unlinked reply
+        + LinkAccount card; then Google link; then linked reply
 - [ ] Phase 4 — reading mail
 - [ ] Phase 5 — reply and compose with confirmation
 - [ ] Phase 6 — hardening, log share endpoint, verbose toggle,
