@@ -4,6 +4,7 @@ const Alexa = require('ask-sdk-core');
 const gmail = require('./gmail');
 const textx = require('./text');
 const sp = require('./speech');
+const store = require('./store');
 
 const SKILL_ID = 'amzn1.ask.skill.9c554724-207c-464e-a0e2-ae3158077bf5';
 const LIST_CAP = 25;
@@ -59,6 +60,16 @@ function sessionState(handlerInput) {
 function saveState(handlerInput, state) {
   const { token, ...persisted } = state;
   handlerInput.attributesManager.setSessionAttributes(persisted);
+  try {
+    const e = handlerInput.requestEnvelope;
+    const sys = (e.context || {}).System || {};
+    const userId =
+      (sys.user && sys.user.userId) ||
+      (e.session && e.session.user && e.session.user.userId);
+    if (userId) store.savePosition(userId, persisted);
+  } catch (err) {
+    console.log('[store] save failed:', err.message);
+  }
   return handlerInput.responseBuilder;
 }
 
@@ -275,6 +286,21 @@ const LaunchRequestHandler = {
       return linkAccountResponse(handlerInput);
     }
     const state = withState(handlerInput);
+    const rawAttrs =
+      handlerInput.attributesManager.getSessionAttributes() || {};
+    if (rawAttrs.resumed && state.msgIds.length) {
+      const meta = state.metas[state.msgIndex];
+      const summary = meta ? sp.summaryLine(meta) : '';
+      return keepOpen(
+        handlerInput,
+        'Welcome back. ' +
+          summary +
+          '<break time="500ms"/>' +
+          'Say read it to continue, or say read my email for a fresh list.',
+        'Say read it, or read my email.',
+        state,
+      );
+    }
     try {
       await loadUnread(state);
     } catch (e) {
@@ -501,14 +527,25 @@ const MenuIntentHandler = {
           );
           break;
         }
-        case 'CountIntent':
+        case 'CountIntent': {
+          const keptIds = state.msgIds;
+          const keptIndex = state.msgIndex;
+          const keptChunk = state.chunkIndex;
           await loadUnread(state);
+          if (keptIds.length) {
+            const idx = state.msgIds.indexOf(keptIds[keptIndex]);
+            if (idx >= 0) {
+              state.msgIndex = idx;
+              state.chunkIndex = keptChunk;
+            }
+          }
           speech =
             'You have ' +
             sp.countText(state.unreadCount, LIST_CAP) +
             '.<break time="500ms"/>' +
             MENU;
           break;
+        }
         case 'AMAZON.HelpIntent':
           speech = `Here is what you can say. ${MENU}`;
           break;
@@ -597,6 +634,35 @@ const coreHandler = Alexa.SkillBuilders.custom()
   .addErrorHandlers(ErrorHandler)
   .lambda();
 
+function hydrateFromStore(event) {
+  const session = event && event.session;
+  if (!session) return;
+  const attrs = session.attributes || {};
+  if (Object.keys(attrs).length) return;
+  try {
+    const sys = (event.context && event.context.System) || {};
+    const userId =
+      (sys.user && sys.user.userId) ||
+      (session.user && session.user.userId);
+    const saved = store.loadPosition(userId);
+    if (!saved) return;
+    session.attributes = {
+      msgIds: saved.msgIds,
+      metas: saved.metas,
+      msgIndex: saved.msgIndex,
+      chunkIndex:
+        typeof saved.chunkIndex === 'number' ? saved.chunkIndex : -1,
+      unreadCount:
+        typeof saved.unreadCount === 'number' ? saved.unreadCount : 0,
+      lastSpeech:
+        typeof saved.lastSpeech === 'string' ? saved.lastSpeech : '',
+      resumed: true,
+    };
+  } catch (err) {
+    console.log('[store] hydrate failed:', err.message);
+  }
+}
+
 function handler(event, context, callback) {
   const session = event && event.session;
   const system = event && event.context && event.context.System;
@@ -608,6 +674,7 @@ function handler(event, context, callback) {
     if (typeof callback === 'function') return callback(err);
     return Promise.reject(err);
   }
+  hydrateFromStore(event);
   return coreHandler(event, context, callback);
 }
 

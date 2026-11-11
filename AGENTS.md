@@ -89,8 +89,17 @@ must stay green and must keep `if-no-files-found: error`.
       - Gmail link verified working live 2026-11-11 (launch speaks
         real unread list with relative times)
       - Skill ID checked on every request (`src/index.js` SKILL_ID)
+      - Cross-session resume of reading position (2026-11-11): every
+        response mirrors the position to
+        `~/.config/alexa-mail-reader/positions.json` (mode 600, outside
+        the repo; override with `POSITION_STORE_PATH`); a new session
+        hydrates the saved list and Launch speaks "Welcome back" with
+        the saved message summary instead of starting over; a one-shot
+        "ask mail reader to read it" resumes at the saved message;
+        "read my email" still refreshes from the top; "how many
+        unread" no longer resets the place in the list
       - Progressive "Checking your mail" phrase deferred to Phase 6
-      - 50 tests green (handler + gmail + text + speech)
+      - 70 tests green (handler + gmail + text + speech + store)
       - Pending: scripted acceptance run — open, count, read message 1
         with a continue hop on the long HTML fixture, jump to message
         3, search from a sender, stop; every utterance first try

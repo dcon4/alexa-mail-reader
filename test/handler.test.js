@@ -2,6 +2,14 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+
+process.env.POSITION_STORE_PATH = path.join(
+  fs.mkdtempSync(path.join(os.tmpdir(), 'mail-reader-pos-')),
+  'positions.json',
+);
 
 const { handler, SKILL_ID } = require('../src/index');
 const gmail = require('../src/gmail');
@@ -61,6 +69,11 @@ stubGmail();
 
 test.beforeEach(() => {
   stubGmail();
+  try {
+    fs.unlinkSync(process.env.POSITION_STORE_PATH);
+  } catch (e) {
+    // no store yet
+  }
 });
 
 function launchEvent() {
@@ -518,4 +531,111 @@ test('RepeatIntent on a read message re-reads it from the start', async () => {
   const speech = speechOf(res.response);
   assert.match(speech, /Relevant body text/);
   assert.equal(res.sessionAttributes.chunkIndex, 0);
+});
+
+function seedPosition(rec) {
+  fs.writeFileSync(
+    process.env.POSITION_STORE_PATH,
+    JSON.stringify({ 'amzn1.ask.account.test': rec }),
+    { mode: 0o600 },
+  );
+}
+
+test('launch saves the position and never stores the token', async () => {
+  const res = await invoke(linkedLaunch());
+  assert.ok(res.sessionAttributes.msgIds);
+  const all = JSON.parse(
+    fs.readFileSync(process.env.POSITION_STORE_PATH, 'utf8'),
+  );
+  const rec = all['amzn1.ask.account.test'];
+  assert.ok(rec);
+  assert.deepEqual(rec.msgIds, ['id1', 'id2']);
+  assert.equal(rec.msgIndex, 0);
+  assert.equal(Object.prototype.hasOwnProperty.call(rec, 'token'), false);
+  assert.doesNotMatch(rec.lastSpeech || '', /test-token/);
+});
+
+test('launch resumes with welcome back when a saved position exists', async () => {
+  let listCalls = 0;
+  stubGmail({
+    listMessageIds: async () => {
+      listCalls += 1;
+      return ['id1', 'id2'];
+    },
+  });
+  seedPosition({
+    msgIds: ['id1', 'id2'],
+    metas: META_FIXTURE,
+    msgIndex: 1,
+    chunkIndex: -1,
+    unreadCount: 2,
+    lastSpeech: '',
+  });
+  const res = await invoke(linkedLaunch());
+  const speech = speechOf(res.response);
+  assert.match(speech, /Welcome back/);
+  assert.match(speech, /Fishing trip/);
+  assert.equal(listCalls, 0);
+  assert.equal(res.response.shouldEndSession, false);
+  assert.ok(res.response.reprompt);
+});
+
+test('a fresh session read it resumes at the saved message', async () => {
+  let fullId = null;
+  stubGmail({
+    getMessageFull: async (token, id) => {
+      fullId = id;
+      return fullMessage('Hello world. All fine.');
+    },
+  });
+  seedPosition({
+    msgIds: ['id1', 'id2'],
+    metas: META_FIXTURE,
+    msgIndex: 1,
+    chunkIndex: -1,
+    unreadCount: 2,
+    lastSpeech: '',
+  });
+  const res = await invoke(
+    intentEvent('ReadCurrentIntent', { linked: true, attributes: {} }),
+  );
+  assert.equal(fullId, 'id2');
+  const speech = speechOf(res.response);
+  assert.match(speech, /Fishing trip/);
+  assert.doesNotMatch(speech, /Welcome back/);
+});
+
+test('read my email still starts the list from the top with a saved position', async () => {
+  seedPosition({
+    msgIds: ['id1', 'id2'],
+    metas: META_FIXTURE,
+    msgIndex: 1,
+    chunkIndex: -1,
+    unreadCount: 2,
+    lastSpeech: '',
+  });
+  const res = await invoke(
+    intentEvent('ReadUnreadIntent', { linked: true, attributes: {} }),
+  );
+  const speech = speechOf(res.response);
+  assert.doesNotMatch(speech, /Welcome back/);
+  assert.match(speech, /Project update/);
+  assert.equal(res.sessionAttributes.msgIndex, 0);
+});
+
+test('how many unread does not reset the place in the list', async () => {
+  const res = await invoke(
+    intentEvent('CountIntent', {
+      linked: true,
+      attributes: {
+        msgIds: ['id1', 'id2'],
+        metas: META_FIXTURE,
+        msgIndex: 1,
+        chunkIndex: 2,
+      },
+    }),
+  );
+  assert.match(speechOf(res.response), /2 unread messages/);
+  assert.equal(res.sessionAttributes.msgIndex, 1);
+  assert.equal(res.sessionAttributes.chunkIndex, 2);
 });
