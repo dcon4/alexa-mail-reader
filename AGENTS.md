@@ -39,7 +39,11 @@ must stay green and must keep `if-no-files-found: error`.
       - Unlinked responses return LinkAccount card + plan wording
       - Linked detection uses `context.System.user.accessToken`
       - Local debug session via `ask run` (1 hour TTL) for device routing
-      - Pending: user enables skill on Echo, links Google, hears placeholder
+      - Dev skills do NOT appear in Alexa app search; path is
+        More -> Skills & Games -> Your Skills -> Dev tab -> Mail Reader
+        -> ENABLE TO USE (same Amazon account as developer)
+      - Echo must be registered to the developer Amazon account
+      - Pending: user enables skill under Dev tab, links Google, hears placeholder
 - [ ] Phase 4 — reading mail
 - [ ] Phase 5 — reply and compose with confirmation
 - [ ] Phase 6 — hardening, log share endpoint, verbose toggle,
