@@ -51,6 +51,15 @@ must stay green and must keep `if-no-files-found: error`.
       - ngrok free plan allows one endpoint; systemd
         `ngrok-tunnel.service` (opencode) must stay stopped while the
         alexa tunnel runs; config `/tmp/opencode/ngrok-alexa-only.yml`
+      - Ad-hoc `node local-server` / `ngrok` processes die when agent
+        tool sessions recycle (ngrok got a stop signal 2026-11-11
+        17:03; the next three user asks all failed with Amazon's
+        "There was a problem with the requested skill response" — zero
+        requests reached the server). Both now run as systemd user
+        units: `alexa-local-server.service` (logs append to
+        `/tmp/opencode/local-server.log`) and `ngrok-alexa.service`,
+        both with `Restart=always` and enabled at login — restart via
+        `systemctl --user`, not bare `node`/`ngrok`
       - Public URL `https://detail-online-exemplary.ngrok-free.dev`
         in SMAPI manifest with `sslCertificateType: Wildcard`
       - Account-linking scopes must be full Google URIs
