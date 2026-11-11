@@ -63,7 +63,30 @@ must stay green and must keep `if-no-files-found: error`.
       - Linking succeeded; linked "Read my email" speaks correct
         handler speech in the Alexa app (verified in server log:
         `intent=ReadUnreadIntent linked=true` + correct SSML)
-- [ ] Phase 4 — reading mail
+- [ ] Phase 4 — reading mail (implementation done 2026-11-11,
+      awaiting the scripted voice acceptance run)
+      - `src/gmail.js` — list/get via Gmail REST, Bearer token from
+        `context.System.user.accessToken`, 4s timeout, one retry on
+        5xx/429/network, typed `GmailError` with status (0 = network)
+      - `src/text.js` — plain-text preferred, HTML fallback strip,
+        quote/signature removal, 2,500-char chunks at sentence
+        boundaries, attachment names
+      - `src/speech.js` — XML escape, clip, relative time ("2 hours
+        ago"), sender name, count text
+      - Launch / "read my email" speak unread count + up to 5
+        summaries (from, subject, relative time); list capped at 25
+      - "read it" / "continue" read body chunks with continue/end
+        prompts; "read message N" jumps and reads; next/previous speak
+        summaries; count and search-by-sender are live
+      - 401 → reconnect speech + LinkAccount card; other Gmail errors
+        → "could not reach your mail" fail-soft; session attributes
+        never persist the access token
+      - Skill ID checked on every request (`src/index.js` SKILL_ID)
+      - Progressive "Checking your mail" phrase deferred to Phase 6
+      - 50 tests green (handler + gmail + text + speech)
+      - Pending: scripted acceptance run — open, count, read message 1
+        with a continue hop on the long HTML fixture, jump to message
+        3, search from a sender, stop; every utterance first try
 - [ ] Phase 5 — reply and compose with confirmation
 - [ ] Phase 6 — hardening, log share endpoint, verbose toggle,
       deploy workflow
