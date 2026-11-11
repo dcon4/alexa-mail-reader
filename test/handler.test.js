@@ -444,3 +444,78 @@ test('body reading replaces long URLs with their domain', async () => {
   assert.doesNotMatch(speech, /very-long-slug/);
   assert.doesNotMatch(speech, /https:\/\//);
 });
+
+test('saying read it after the end restarts the message instead of looping', async () => {
+  stubGmail({
+    getMessageFull: async () => fullMessage('Only short body here.'),
+  });
+  const attrs = {
+    msgIds: ['id1'],
+    metas: [META_FIXTURE[0]],
+    msgIndex: 0,
+    chunkIndex: -1,
+  };
+  const first = await invoke(
+    intentEvent('ReadCurrentIntent', { linked: true, attributes: attrs }),
+  );
+  const firstSpeech = speechOf(first.response);
+  assert.match(firstSpeech, /Only short body here/);
+  assert.match(firstSpeech, /That is the end of the message/);
+  assert.equal(first.sessionAttributes.chunkIndex, 0);
+
+  const second = await invoke(
+    intentEvent('ReadCurrentIntent', {
+      linked: true,
+      attributes: first.sessionAttributes,
+    }),
+  );
+  const secondSpeech = speechOf(second.response);
+  assert.match(secondSpeech, /Only short body here/);
+  assert.doesNotMatch(secondSpeech, /^<speak>That is the end/);
+  assert.equal(second.sessionAttributes.chunkIndex, 0);
+});
+
+test('continue on the last chunk restarts from the first chunk', async () => {
+  stubGmail({ getMessageFull: async () => fullMessage(LONG_BODY) });
+  const textx = require('../src/text');
+  const nChunks = textx.chunkText(LONG_BODY, 2500).length;
+  let attrs = {
+    msgIds: ['id1'],
+    metas: [META_FIXTURE[0]],
+    msgIndex: 0,
+    chunkIndex: -1,
+  };
+  let last;
+  for (let i = 0; i < nChunks + 2; i++) {
+    last = await invoke(
+      intentEvent('ReadCurrentIntent', { linked: true, attributes: attrs }),
+    );
+    attrs = last.sessionAttributes;
+    if (i > 0 && attrs.chunkIndex === 0) break;
+  }
+  assert.equal(attrs.chunkIndex, 0);
+  const speech = speechOf(last.response);
+  assert.match(speech, /From Maya/);
+  assert.match(speech, /Sentence number 0 /);
+});
+
+test('RepeatIntent on a read message re-reads it from the start', async () => {
+  stubGmail({
+    getMessageFull: async () => fullMessage('Relevant body text.'),
+  });
+  const res = await invoke(
+    intentEvent('RepeatIntent', {
+      linked: true,
+      attributes: {
+        msgIds: ['id1'],
+        metas: [META_FIXTURE[0]],
+        msgIndex: 0,
+        chunkIndex: 2,
+        lastSpeech: 'That is the end of the message. Reply, next, or stop.',
+      },
+    }),
+  );
+  const speech = speechOf(res.response);
+  assert.match(speech, /Relevant body text/);
+  assert.equal(res.sessionAttributes.chunkIndex, 0);
+});

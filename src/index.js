@@ -17,7 +17,8 @@ const MENU =
   'You can say read it, next, previous, reply, how many unread, or stop.';
 const MENU_LIST = 'Say read it, next, or how many unread.';
 const MENU_MSG = 'Say read it, next, previous, reply, or stop.';
-const MENU_END = 'Reply, next, or stop.';
+const MENU_END =
+  'That is the end of the message. Reply, next, or stop.';
 const MENU_CONTINUE = 'Say continue for more, or next for the next message.';
 const NO_UNREAD =
   'You have no unread messages. ' +
@@ -245,7 +246,8 @@ async function continueBody(handlerInput, state) {
     return bodySpeech(state, body, 0);
   }
   if (state.chunkIndex >= chunks.length - 1) {
-    return 'That is the end of the message. ' + MENU_END;
+    state.chunkIndex = 0;
+    return bodySpeech(state, body, 0);
   }
   const idx = state.chunkIndex + 1;
   state.chunkIndex = idx;
@@ -446,11 +448,15 @@ const MenuIntentHandler = {
           break;
         }
         case 'RepeatIntent':
-          speech =
-            state.lastSpeech ||
-            (state.metas[state.msgIndex]
-              ? summarySpeech(state)
-              : MENU);
+          if (state.msgIds.length && state.chunkIndex >= 0) {
+            speech = await readCurrentBody(handlerInput, state);
+          } else {
+            speech =
+              state.lastSpeech ||
+              (state.metas[state.msgIndex]
+                ? summarySpeech(state)
+                : MENU);
+          }
           break;
         case 'ReplyIntent':
           speech =
