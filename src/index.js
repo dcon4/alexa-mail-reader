@@ -4,8 +4,19 @@ const Alexa = require('ask-sdk-core');
 
 const NOT_CONNECTED =
   'Gmail is not connected in this test build yet.';
+const LINKED = 'Mail reader is linked and working.';
 const MENU =
   'You can say read my email, next, previous, reply, compose, how many unread, or stop.';
+
+function isLinked(handlerInput) {
+  const context = handlerInput.requestEnvelope.context || {};
+  const system = context.System || {};
+  return Boolean(system.apiAccessToken);
+}
+
+function statusLine(handlerInput) {
+  return isLinked(handlerInput) ? LINKED : NOT_CONNECTED;
+}
 
 function sessionState(handlerInput) {
   const attrs =
@@ -37,7 +48,7 @@ const LaunchRequestHandler = {
   handle(handlerInput) {
     return keepOpen(
       handlerInput,
-      `Mail reader. ${NOT_CONNECTED} ${MENU}`,
+      `Mail reader. ${statusLine(handlerInput)} ${MENU}`,
       'Say read my email, or help.',
     );
   },
@@ -79,7 +90,7 @@ const ComposeIntentHandler = {
     };
     return saveState(handlerInput, state)
       .speak(
-        `Composing an email to ${recipient}. ${NOT_CONNECTED} ` +
+        `Composing an email to ${recipient}. ${statusLine(handlerInput)} ` +
           'When the connection is ready, you will hear the address ' +
           'read back before anything is sent. Say help for choices.',
       )
@@ -104,28 +115,28 @@ const MenuIntentHandler = {
       case 'ReadLatestIntent':
       case 'ReadCurrentIntent':
         state.msgIndex = 0;
-        speech = `Opening your mail. ${NOT_CONNECTED} ${MENU}`;
+        speech = `Opening your mail. ${statusLine(handlerInput)} ${MENU}`;
         break;
       case 'ReadMessageIntent': {
         const n = slots.messageNumber && slots.messageNumber.value;
-        speech = `Reading message ${n || 'one'}. ${NOT_CONNECTED} ${MENU}`;
+        speech = `Reading message ${n || 'one'}. ${statusLine(handlerInput)} ${MENU}`;
         break;
       }
       case 'NextMessageIntent':
         state.msgIndex += 1;
-        speech = `Message ${state.msgIndex + 1}. ${NOT_CONNECTED} Say next, previous, or reply.`;
+        speech = `Message ${state.msgIndex + 1}. ${statusLine(handlerInput)} Say next, previous, or reply.`;
         break;
       case 'PreviousMessageIntent':
         state.msgIndex = Math.max(0, state.msgIndex - 1);
-        speech = `Message ${state.msgIndex + 1}. ${NOT_CONNECTED} Say next, previous, or reply.`;
+        speech = `Message ${state.msgIndex + 1}. ${statusLine(handlerInput)} Say next, previous, or reply.`;
         break;
       case 'RepeatIntent':
-        speech = `Repeating. ${NOT_CONNECTED} Say next, previous, or reply.`;
+        speech = `Repeating. ${statusLine(handlerInput)} Say next, previous, or reply.`;
         break;
       case 'ReplyIntent':
         speech =
           'Reply flow. ' +
-          NOT_CONNECTED +
+          statusLine(handlerInput) +
           ' When it is connected, dictate your reply and you will hear it read back before sending.';
         break;
       case 'AddBodyIntent': {
@@ -135,11 +146,11 @@ const MenuIntentHandler = {
             ? `${state.draft.body} ${added || ''}`
             : added || '';
         }
-        speech = `Added: ${added || 'nothing'}. ${NOT_CONNECTED} Say send it, or add more.`;
+        speech = `Added: ${added || 'nothing'}. ${statusLine(handlerInput)} Say send it, or add more.`;
         break;
       }
       case 'ConfirmSendIntent':
-        speech = `Send confirmed. ${NOT_CONNECTED} Nothing has been sent in this test build.`;
+        speech = `Send confirmed. ${statusLine(handlerInput)} Nothing has been sent in this test build.`;
         state.draft = null;
         break;
       case 'DiscardIntent':
@@ -148,17 +159,17 @@ const MenuIntentHandler = {
         break;
       case 'SearchIntent': {
         const sender = slots.sender && slots.sender.value;
-        speech = `Searching for mail from ${sender || 'that sender'}. ${NOT_CONNECTED} ${MENU}`;
+        speech = `Searching for mail from ${sender || 'that sender'}. ${statusLine(handlerInput)} ${MENU}`;
         break;
       }
       case 'CountIntent':
-        speech = `Counting unread messages. ${NOT_CONNECTED} ${MENU}`;
+        speech = `Counting unread messages. ${statusLine(handlerInput)} ${MENU}`;
         break;
       case 'AMAZON.HelpIntent':
         speech = `Here is what you can say. ${MENU}`;
         break;
       default:
-        speech = `I heard ${name}. ${NOT_CONNECTED} ${MENU}`;
+        speech = `I heard ${name}. ${statusLine(handlerInput)} ${MENU}`;
     }
 
     return keepOpen(handlerInput, speech, MENU, state);

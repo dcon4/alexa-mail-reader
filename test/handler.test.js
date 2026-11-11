@@ -29,6 +29,9 @@ function intentEvent(intentName, options = {}) {
   const event = launchEvent();
   event.session.new = false;
   event.session.attributes = options.attributes || {};
+  if (options.linked) {
+    event.context.System = { apiAccessToken: 'test-token' };
+  }
   event.request = {
     type: 'IntentRequest',
     requestId: 'amzn1.echo-api.request.test',
@@ -169,4 +172,17 @@ test('SessionEndedRequest closes cleanly', async () => {
   };
   const res = await invoke(event);
   assert.equal(res.response.shouldEndSession, true);
+});
+
+test('linked launch says the Phase 3 placeholder', async () => {
+  const event = launchEvent();
+  event.context.System = { apiAccessToken: 'test-token' };
+  const res = await invoke(event);
+  assert.match(speechOf(res.response), /linked and working/);
+  assert.doesNotMatch(speechOf(res.response), /not connected/);
+});
+
+test('linked ReadUnreadIntent says the Phase 3 placeholder', async () => {
+  const res = await invoke(intentEvent('ReadUnreadIntent', { linked: true }));
+  assert.match(speechOf(res.response), /linked and working/);
 });
