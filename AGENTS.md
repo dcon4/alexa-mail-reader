@@ -76,7 +76,9 @@ must stay green and must keep `if-no-files-found: error`.
       - Launch / "read my email" speak unread count + up to 5
         summaries (from, subject, relative time); list capped at 25
       - "read it" / "continue" read body chunks with continue/end
-        prompts; "read message N" jumps and reads; next/previous speak
+        prompts; at the end of a message, "read it"/"continue"
+        restarts it (no dead-end loop — user report 2026-11-11);
+        "read message N" jumps and reads; next/previous speak
         summaries; count and search-by-sender are live
       - 401 → reconnect speech + LinkAccount card; other Gmail errors
         → "could not reach your mail" fail-soft; session attributes
