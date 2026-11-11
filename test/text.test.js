@@ -91,3 +91,44 @@ test('extractBody falls back to HTML and lists attachments', () => {
   assert.equal(out.text, 'html only');
   assert.deepEqual(out.attachments, ['report.pdf']);
 });
+
+test('scrubUrls replaces long URLs with the bare domain', () => {
+  const text =
+    'Read more at https://mestuff.substack.com/p/its-beginning-to-look ' +
+    'or www.example.com/a/b?c=1. Next sentence.';
+  const out = textx.scrubUrls(text);
+  assert.match(out, /mestuff\.substack\.com/);
+  assert.match(out, /example\.com/);
+  assert.doesNotMatch(out, /https?:\/\//);
+  assert.doesNotMatch(out, /\/p\/its-beginning/);
+  assert.doesNotMatch(out, /\?c=1/);
+  assert.match(out, /Next sentence\./);
+});
+
+test('scrubUrls keeps trailing punctuation outside the domain', () => {
+  const out = textx.scrubUrls('See https://example.com/news. Done.');
+  assert.equal(out, 'See example.com. Done.');
+});
+
+test('stripEmoji removes emoji but keeps readable text', () => {
+  const out = textx.stripEmoji('Delivered is on 🥳 yes 🕯️👹 done');
+  assert.equal(out, 'Delivered is on yes done');
+});
+
+test('extractBody scrubs URLs and emoji from the spoken text', () => {
+  const msg = {
+    payload: {
+      mimeType: 'text/plain',
+      body: {
+        data: b64(
+          'Hello 🎉\nUnsubscribe https://substack.com/redirect/2/eyJhYmNkZWZnaGlqa2xtbm5vcHFyc3R1dnd4eXo.abcdefghij\nBye',
+        ),
+      },
+    },
+  };
+  const out = textx.extractBody(msg);
+  assert.doesNotMatch(out.text, /eyJhYmNk/);
+  assert.match(out.text, /substack\.com/);
+  assert.doesNotMatch(out.text, /🎉/);
+  assert.match(out.text, /Hello/);
+});

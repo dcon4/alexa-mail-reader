@@ -1,5 +1,7 @@
 'use strict';
 
+const textx = require('./text');
+
 function escapeXml(s) {
   return String(s == null ? '' : s)
     .replace(/&/g, '&amp;')
@@ -35,6 +37,10 @@ function relativeTime(dateStr) {
   });
 }
 
+function sanitize(s) {
+  return textx.stripEmoji(textx.scrubUrls(String(s == null ? '' : s)));
+}
+
 function senderName(from) {
   if (!from) return 'someone';
   const angle = from.match(/^(.*?)<(.+?)>/s);
@@ -50,9 +56,9 @@ function senderName(from) {
 }
 
 function summaryLine(meta) {
-  const from = escapeXml(senderName(meta.from));
+  const from = escapeXml(clip(sanitize(senderName(meta.from)), 40));
   const subj = meta.subject && meta.subject.trim()
-    ? escapeXml(clip(meta.subject.trim(), 60))
+    ? escapeXml(clip(sanitize(meta.subject.trim()), 60))
     : 'no subject';
   const when = relativeTime(meta.date);
   return `From ${from}, ${subj}${when ? ', ' + when : ''}.`;
@@ -71,4 +77,5 @@ module.exports = {
   senderName,
   summaryLine,
   countText,
+  sanitize,
 };

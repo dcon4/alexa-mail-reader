@@ -420,3 +420,27 @@ test('requests for a different skill id are rejected', async () => {
   event.session.application.applicationId = 'amzn1.ask.skill.wrong';
   await assert.rejects(() => invoke(event), /mismatch/);
 });
+
+test('body reading replaces long URLs with their domain', async () => {
+  stubGmail({
+    getMessageFull: async () =>
+      fullMessage(
+        'Full story here: https://news.example.com/article/2026/11/very-long-slug-that-should-not-be-spoken. The end.',
+      ),
+  });
+  const res = await invoke(
+    intentEvent('ReadCurrentIntent', {
+      linked: true,
+      attributes: {
+        msgIds: ['id1'],
+        metas: [META_FIXTURE[0]],
+        msgIndex: 0,
+        chunkIndex: -1,
+      },
+    }),
+  );
+  const speech = speechOf(res.response);
+  assert.match(speech, /news\.example\.com/);
+  assert.doesNotMatch(speech, /very-long-slug/);
+  assert.doesNotMatch(speech, /https:\/\//);
+});

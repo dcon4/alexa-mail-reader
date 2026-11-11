@@ -91,6 +91,37 @@ function chunkText(text, size = 2500) {
   return chunks.length ? chunks : [text];
 }
 
+function scrubUrls(text) {
+  return String(text == null ? '' : text).replace(
+    /(?:https?:\/\/|www\.)[^\s<>"']+/gi,
+    (match) => {
+      const trailing = (match.match(/[.,;:!?)\]}'"]+$/) || [''])[0];
+      const core = match.slice(0, match.length - trailing.length);
+      let host = '';
+      try {
+        host = new URL(
+          /^https?:\/\//i.test(core) ? core : 'https://' + core,
+        ).hostname;
+      } catch (e) {
+        host = core
+          .replace(/^(?:https?:\/\/|www\.)+/i, '')
+          .split(/[/?#]/)[0];
+      }
+      host = host.replace(/^www\./i, '').replace(/\.+$/, '');
+      return (host || 'weblink') + trailing;
+    },
+  );
+}
+
+function stripEmoji(s) {
+  return String(s == null ? '' : s)
+    .replace(/\p{Extended_Pictographic}/gu, ' ')
+    .replace(/\p{Regional_Indicator}/gu, ' ')
+    .replace(/[\u{FE0F}\u{200D}]/gu, '')
+    .replace(/ {2,}/g, ' ')
+    .trim();
+}
+
 function extractBody(fullMessage) {
   const payload = fullMessage.payload;
   const plain = findPart(payload, 'text/plain');
@@ -98,8 +129,9 @@ function extractBody(fullMessage) {
   let raw = '';
   if (plain) raw = decodeB64Url(plain);
   else if (html) raw = htmlToText(decodeB64Url(html));
+  const cleaned = stripEmoji(scrubUrls(cleanText(raw)));
   return {
-    text: cleanText(raw),
+    text: cleaned,
     attachments: attachmentNames(payload),
   };
 }
@@ -111,4 +143,6 @@ module.exports = {
   cleanText,
   htmlToText,
   attachmentNames,
+  scrubUrls,
+  stripEmoji,
 };

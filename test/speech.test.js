@@ -64,3 +64,20 @@ test('countText pluralises and caps', () => {
   assert.equal(sp.countText(3, 25), '3 unread messages');
   assert.equal(sp.countText(25, 25), '25 or more unread messages');
 });
+
+test('sanitize scrubs URLs and emoji from speech text', () => {
+  assert.equal(
+    sp.sanitize('Look 🎉 at https://shop.example.com/item/12345 now'),
+    'Look at shop.example.com now',
+  );
+});
+
+test('summaryLine scrubs emoji and URLs from the subject', () => {
+  const line = sp.summaryLine({
+    from: 'Bot <bot@x.com>',
+    subject: 'Deal 🎁 https://store.example.com/sale/very-long-path',
+    date: '',
+  });
+  assert.match(line, /From Bot, Deal store\.example\.com\.$/);
+  assert.doesNotMatch(line, /🎁|https:\/\//);
+});

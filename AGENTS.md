@@ -81,6 +81,11 @@ must stay green and must keep `if-no-files-found: error`.
       - 401 → reconnect speech + LinkAccount card; other Gmail errors
         → "could not reach your mail" fail-soft; session attributes
         never persist the access token
+      - Spoken text is sanitized: URLs become their bare domain
+        (never paths or query strings), emoji are stripped — request
+        from user 2026-11-11 after real-mail testing
+      - Gmail link verified working live 2026-11-11 (launch speaks
+        real unread list with relative times)
       - Skill ID checked on every request (`src/index.js` SKILL_ID)
       - Progressive "Checking your mail" phrase deferred to Phase 6
       - 50 tests green (handler + gmail + text + speech)

@@ -186,9 +186,11 @@ function bodySpeech(state, body, chunkIdx) {
   const chunks = body.text ? textx.chunkText(body.text, CHUNK_SIZE) : [];
   let speech = '';
   if (chunkIdx === 0) {
-    const from = sp.escapeXml(sp.senderName(meta.from));
+    const from = sp.escapeXml(
+      sp.clip(sp.sanitize(sp.senderName(meta.from)), 40),
+    );
     const subj = meta.subject && meta.subject.trim()
-      ? sp.escapeXml(sp.clip(meta.subject.trim(), 80))
+      ? sp.escapeXml(sp.clip(sp.sanitize(meta.subject.trim()), 80))
       : 'no subject';
     speech += `From ${from}. Subject: ${subj}.<break time="300ms"/>`;
     if (body.attachments.length) {

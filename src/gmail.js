@@ -42,7 +42,23 @@ async function request(token, path, allowRetry = true) {
       await sleep(RETRY_DELAY_MS);
       return request(token, path, false);
     }
-    throw new GmailError(res.status, 'http ' + res.status);
+    let detail = '';
+    try {
+      const body = await res.json();
+      const err = body && body.error;
+      if (typeof err === 'string') {
+        detail = err;
+        if (body.error_description) {
+          detail += ': ' + String(body.error_description).slice(0, 200);
+        }
+      } else if (err && (err.message || err.status)) {
+        detail = String(err.message || err.status).slice(0, 200);
+      }
+    } catch (e) {
+      // non-JSON error body
+    }
+    console.log('[gmail]', res.status, detail || 'no error body');
+    throw new GmailError(res.status, detail || 'http ' + res.status);
   }
   return res.json();
 }
