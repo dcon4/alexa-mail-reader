@@ -42,8 +42,12 @@ must stay green and must keep `if-no-files-found: error`.
       - Dev skills do NOT appear in Alexa app search; path is
         More -> Skills & Games -> Your Skills -> Dev tab -> Mail Reader
         -> ENABLE TO USE (same Amazon account as developer)
-      - Echo must be registered to the developer Amazon account
-      - Pending: user enables skill under Dev tab, links Google, hears placeholder
+      - Console Test page: user confirmed "Skill testing is enabled in
+        Development"
+      - Echo must be registered to the developer Amazon account;
+        locale en-US
+      - Pending: user says "Alexa, open mail reader" on Echo; unlinked
+        reply + LinkAccount card; then Google link; then linked reply
 - [ ] Phase 4 — reading mail
 - [ ] Phase 5 — reply and compose with confirmation
 - [ ] Phase 6 — hardening, log share endpoint, verbose toggle,
