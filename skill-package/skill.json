@@ -23,8 +23,8 @@
     "apis": {
       "custom": {
         "endpoint": {
-          "uri": "https://example.com/alexa",
-          "sslCertificateType": "Trusted"
+          "uri": "https://detail-online-exemplary.ngrok-free.dev",
+          "sslCertificateType": "Wildcard"
         }
       }
     },

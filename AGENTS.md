@@ -49,12 +49,19 @@ must stay green and must keep `if-no-files-found: error`.
       - Echo invoke failed: "I am unable to reach the requested skill"
         (Alexa hit example.com/alexa, not local debug WS; zero
         "Skill request" lines in ask-run.log despite WS ESTAB)
-      - Diagnostic: developer console Test page simulator while ask run
-        is up; if no Skill request in log, local debug is not routing
-      - Fallback if local debug will not route: ngrok HTTPS tunnel
-        (binary at /home/dwc/.local/bin/ngrok) or Phase 6 Lambda
-      - Pending: simulator reachability check; then Echo unlinked reply
-        + LinkAccount card; then Google link; then linked reply
+      - Local debug does not route device traffic; fell back to ngrok
+        HTTPS tunnel (Phase 6 Lambda is the permanent home later)
+      - Local HTTP bridge: `local-server.js` on 127.0.0.1:8443 wraps
+        the ASK handler (GET /health, POST invoke)
+      - ngrok free plan allows one endpoint; systemd
+        `ngrok-tunnel.service` (opencode) was stopped for Phase 3;
+        alexa tunnel config at `/tmp/opencode/ngrok-alexa-only.yml`
+      - Public URL `https://detail-online-exemplary.ngrok-free.dev`
+        verified end-to-end (health ok, Launch returns LinkAccount)
+      - SMAPI development manifest endpoint updated to that URL with
+        `sslCertificateType: Wildcard`; local skill.json synced
+      - Pending: Echo invoke "Alexa, open mail reader" → unlinked
+        reply + LinkAccount card; then Google link; then linked reply
 - [ ] Phase 4 — reading mail
 - [ ] Phase 5 — reply and compose with confirmation
 - [ ] Phase 6 — hardening, log share endpoint, verbose toggle,
