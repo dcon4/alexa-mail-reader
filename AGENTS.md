@@ -28,40 +28,41 @@ must stay green and must keep `if-no-files-found: error`.
 - [x] Phase 0 cont. — Amazon developer sign-in (ASK CLI profile
       `default`), skill created via SMAPI
 - [x] Phase 0 cont. — Google Web credential created (Client ID below);
-      Client Secret stays in the user's browser, never in chat or repo
+      Client Secret stored locally at
+      `~/.config/alexa-mail-reader/google-client-secret` (mode 600,
+      never in chat or repo)
 - [x] Phase 2 — full interaction model + ASK SDK handler skeleton
       (model uploaded to SMAPI; 24 tests green)
-- [ ] Phase 3 — Gmail proof folded in per plan section 14 (Phase 1
-      collapsed): Google consent + skill account linking on a real
-      Echo (pivotal; decides plan 7.1 vs 7.2)
+- [x] Phase 3 — account linking proof complete (2026-11-11), plan
+      section 7.1 direct Google linking confirmed working; no Echo —
+      tested entirely in the Alexa app on the developer account
       - Account linking client set on development stage (AUTH_CODE → Google)
       - Skill enabled for development (enablement PUT 204)
       - Unlinked responses return LinkAccount card + plan wording
       - Linked detection uses `context.System.user.accessToken`
-      - Local debug session via `ask run` (1 hour TTL) for device routing
       - Dev skills do NOT appear in Alexa app search; path is
         More -> Skills & Games -> Your Skills -> Dev tab -> Mail Reader
         -> ENABLE TO USE (same Amazon account as developer)
-      - Console Test page: user confirmed "Skill testing is enabled in
-        Development"
-      - Echo must be registered to the developer Amazon account;
-        locale en-US
-      - Echo invoke failed: "I am unable to reach the requested skill"
-        (Alexa hit example.com/alexa, not local debug WS; zero
-        "Skill request" lines in ask-run.log despite WS ESTAB)
-      - Local debug does not route device traffic; fell back to ngrok
-        HTTPS tunnel (Phase 6 Lambda is the permanent home later)
+      - Local debug via `ask run` does NOT route traffic; fell back to
+        ngrok HTTPS tunnel (Phase 6 Lambda is the permanent home later)
       - Local HTTP bridge: `local-server.js` on 127.0.0.1:8443 wraps
-        the ASK handler (GET /health, POST invoke)
+        the ASK handler (GET /health, POST invoke); logs intent name
+        and response speech
       - ngrok free plan allows one endpoint; systemd
-        `ngrok-tunnel.service` (opencode) was stopped for Phase 3;
-        alexa tunnel config at `/tmp/opencode/ngrok-alexa-only.yml`
+        `ngrok-tunnel.service` (opencode) must stay stopped while the
+        alexa tunnel runs; config `/tmp/opencode/ngrok-alexa-only.yml`
       - Public URL `https://detail-online-exemplary.ngrok-free.dev`
-        verified end-to-end (health ok, Launch returns LinkAccount)
-      - SMAPI development manifest endpoint updated to that URL with
-        `sslCertificateType: Wildcard`; local skill.json synced
-      - Pending: Echo invoke "Alexa, open mail reader" → unlinked
-        reply + LinkAccount card; then Google link; then linked reply
+        in SMAPI manifest with `sslCertificateType: Wildcard`
+      - Account-linking scopes must be full Google URIs
+        (`https://www.googleapis.com/auth/gmail.readonly`,
+        `.../gmail.send`), not bare `gmail.readonly` — bare form gave
+        Google `invalid_scope`
+      - Google client secret stored at
+        `~/.config/alexa-mail-reader/google-client-secret` (mode 600,
+        not in repo) — needed for the Phase 4 token exchange
+      - Linking succeeded; linked "Read my email" speaks correct
+        handler speech in the Alexa app (verified in server log:
+        `intent=ReadUnreadIntent linked=true` + correct SSML)
 - [ ] Phase 4 — reading mail
 - [ ] Phase 5 — reply and compose with confirmation
 - [ ] Phase 6 — hardening, log share endpoint, verbose toggle,

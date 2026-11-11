@@ -44,10 +44,13 @@ const server = http.createServer((req, res) => {
       return;
     }
     const reqType = event && event.request && event.request.type;
+    const intentName =
+      event && event.request && event.request.intent && event.request.intent.name;
     console.log(
       new Date().toISOString(),
       'REQ',
       reqType,
+      intentName ? 'intent=' + intentName : '',
       'locale=' + (event && event.request && event.request.locale),
       'linked=' + Boolean(
         event &&
@@ -65,6 +68,11 @@ const server = http.createServer((req, res) => {
         'Content-Length': Buffer.byteLength(body),
       });
       res.end(body);
+      const speech =
+        out &&
+        out.response &&
+        out.response.outputSpeech &&
+        out.response.outputSpeech.ssml;
       console.log(
         new Date().toISOString(),
         'RES',
@@ -74,7 +82,8 @@ const server = http.createServer((req, res) => {
           (out &&
             out.response &&
             out.response.card &&
-            out.response.card.type)
+            out.response.card.type),
+        'speech=' + JSON.stringify(speech || null)
       );
     } catch (e) {
       console.log(new Date().toISOString(), 'ERR', reqType, e && e.message);
