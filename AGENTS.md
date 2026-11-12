@@ -17,11 +17,11 @@ must stay green and must keep `if-no-files-found: error`.
 - Plan report:
   `/mnt/ls-share/opencode/reports/alexa-gmail-skill-plan-fleshed-out-2026-11-09.txt`
 - Official name: `Email Reader` (manifest display name); primary
-  invocation name: `email reader`; alias phrase `mail reader` (2026-11-12
-  rename, user directive — Amazon allows only ONE guaranteed invocation
-  name, so the alias relies on Alexa's name matching; verify both in
-  testing and if the alias fails, options are teaching the primary
-  phrase or a second alias skill hitting the same endpoint)
+  invocation name: `email reader`; the old phrase `mail reader` was
+  tested live 2026-11-12 and does NOT resolve (Amazon allows only
+  one guaranteed invocation name; user accepted — teach only
+  "ask email reader to ..."; a second alias skill was considered and
+  declined as unnecessary)
 - Google Cloud project: reuse VoiceGmail's project `359413552450`
 - Linking design: direct Google account linking (plan section 7.1);
   section 7.2 fallback only if Phase 3 fails
@@ -63,7 +63,11 @@ must stay green and must keep `if-no-files-found: error`.
         `~/.config/ngrok/alexa-mail-reader.yml` (mode 600, home dir —
         NOT /tmp, which is wiped on reboot; format: `version: "2"`,
         top-level `authtoken`, tunnel key `hostname:` — ngrok
-        3.39.7 rejects `version: "3"`/`domain:` for this setup)
+        3.39.7 rejects `version: "3"`/`domain:` for this setup);
+        authtoken ROTATED 2026-11-12 via dashboard roll + one-time
+        local paste form (port 18765) — the earlier chat-leaked value
+        is dead; both config files (alexa + opencode) updated, tunnel
+        verified live on the new token, form and all its files removed
       - Ad-hoc `node local-server` / `ngrok` processes die when agent
         tool sessions recycle (ngrok got a stop signal 2026-11-11
         17:03; the next three user asks all failed with Amazon's
@@ -148,9 +152,9 @@ must stay green and must keep `if-no-files-found: error`.
         mail reader to read my email / read it / how many unread"
       - Progressive "Checking your mail" phrase deferred to Phase 6
       - 77 tests green (handler + gmail + text + speech + store)
-      - Remaining Phase 4 loose end: live check of the alias phrase
-        "mail reader" post-rename (simulator resolves it; primary
-        "email reader" proven live)
+      - Remaining Phase 4 loose end CLOSED 2026-11-12: alias phrase
+        "mail reader" fails live (simulator resolved it, real Alexa+
+        did not); primary "email reader" is the only phrase to teach
 - [ ] Phase 5 — reply and compose with confirmation
 - [ ] Phase 6 — hardening, log share endpoint, verbose toggle,
       deploy workflow
