@@ -85,8 +85,15 @@ must stay green and must keep `if-no-files-found: error`.
       - Linking succeeded; linked "Read my email" speaks correct
         handler speech in the Alexa app (verified in server log:
         `intent=ReadUnreadIntent linked=true` + correct SSML)
-- [ ] Phase 4 — reading mail (implementation done 2026-11-11,
-      awaiting the scripted voice acceptance run)
+- [x] Phase 4 — reading mail (accepted 2026-11-12: every command
+      verified live — list, summaries, chunked body with continue,
+      jump to message N, next/previous, repeat, count, search by
+      sender (confirmed live 2026-11-12), exit/quit, help, stop,
+      reply/compose flow entry points, cross-session resume greeting;
+      a 19-utterance simulator battery cross-checked against server
+      logs — simulator one-shot mode is stricter than live Alexa+ for
+      launch/read-it/stop phrasings, so the live log is the source
+      of truth)
       - `src/gmail.js` — list/get via Gmail REST, Bearer token from
         `context.System.user.accessToken`, 4s timeout, one retry on
         5xx/429/network, typed `GmailError` with status (0 = network)
@@ -140,10 +147,10 @@ must stay green and must keep `if-no-files-found: error`.
         failures). Reliable entries are the ask forms: "Alexa, ask
         mail reader to read my email / read it / how many unread"
       - Progressive "Checking your mail" phrase deferred to Phase 6
-      - 76 tests green (handler + gmail + text + speech + store)
-      - Pending: scripted acceptance run — open, count, read message 1
-        with a continue hop on the long HTML fixture, jump to message
-        3, search from a sender, stop; every utterance first try
+      - 77 tests green (handler + gmail + text + speech + store)
+      - Remaining Phase 4 loose end: live check of the alias phrase
+        "mail reader" post-rename (simulator resolves it; primary
+        "email reader" proven live)
 - [ ] Phase 5 — reply and compose with confirmation
 - [ ] Phase 6 — hardening, log share endpoint, verbose toggle,
       deploy workflow
