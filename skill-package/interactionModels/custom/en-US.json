@@ -20,6 +20,14 @@
           "samples": []
         },
         {
+          "name": "ExitIntent",
+          "slots": [],
+          "samples": [
+            "exit",
+            "quit"
+          ]
+        },
+        {
           "name": "ReadUnreadIntent",
           "slots": [],
           "samples": [

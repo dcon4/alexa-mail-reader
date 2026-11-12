@@ -409,6 +409,12 @@ test('StopIntent ends the session with goodbye', async () => {
   assert.equal(res.response.shouldEndSession, true);
 });
 
+test('ExitIntent ends the session like stop', async () => {
+  const res = await invoke(intentEvent('ExitIntent'));
+  assert.match(speechOf(res.response), /Goodbye/);
+  assert.equal(res.response.shouldEndSession, true);
+});
+
 test('SessionEndedRequest closes cleanly', async () => {
   const event = launchEvent();
   event.request = {

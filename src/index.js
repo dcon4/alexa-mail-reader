@@ -594,7 +594,8 @@ const StopCancelIntentHandler = {
     return (
       req.type === 'IntentRequest' &&
       (req.intent.name === 'AMAZON.StopIntent' ||
-        req.intent.name === 'AMAZON.CancelIntent')
+        req.intent.name === 'AMAZON.CancelIntent' ||
+        req.intent.name === 'ExitIntent')
     );
   },
   handle(handlerInput) {

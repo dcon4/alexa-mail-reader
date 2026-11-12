@@ -79,6 +79,7 @@ test('model has the full browse and compose vocabulary', () => {
     'DiscardIntent',
     'SearchIntent',
     'CountIntent',
+    'ExitIntent',
   ]) {
     assert.ok(names.includes(required), `missing ${required}`);
   }
