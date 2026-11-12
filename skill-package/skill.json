@@ -3,12 +3,12 @@
     "publishingInformation": {
       "locales": {
         "en-US": {
-          "name": "Mail Reader",
+          "name": "Email Reader",
           "summary": "Reads your unread email and sends replies, by voice.",
           "examplePhrases": [
-            "Alexa, open mail reader",
-            "Alexa, ask mail reader to read my email",
-            "Alexa, ask mail reader how many unread"
+            "Alexa, ask email reader to read my email",
+            "Alexa, ask email reader how many unread",
+            "Alexa, ask email reader to read it"
           ],
           "keywords": [
             "email",

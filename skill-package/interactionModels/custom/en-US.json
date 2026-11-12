@@ -1,7 +1,7 @@
 {
   "interactionModel": {
     "languageModel": {
-      "invocationName": "mail reader",
+      "invocationName": "email reader",
       "intents": [
         {
           "name": "AMAZON.CancelIntent",

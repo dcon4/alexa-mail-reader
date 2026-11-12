@@ -26,7 +26,7 @@ const NO_UNREAD =
   'You can still say read my latest email, or search email from a name.';
 const RECONNECTED_401 =
   'Your Gmail connection has expired. ' +
-  'Open the Alexa app and reconnect Mail reader.';
+  'Open the Alexa app and reconnect Email reader.';
 
 function isLinked(handlerInput) {
   const context = handlerInput.requestEnvelope.context || {};
@@ -307,7 +307,7 @@ const LaunchRequestHandler = {
       if (isGmailError(e)) return gmailErrorResponse(handlerInput, e, state);
       throw e;
     }
-    const prefix = 'Mail reader. ';
+    const prefix = 'Email reader. ';
     if (!state.metas.length) {
       return keepOpen(handlerInput, prefix + NO_UNREAD, MENU, state);
     }

@@ -148,7 +148,7 @@ function speechOf(response) {
 test('LaunchRequest lists unread mail and keeps the session open', async () => {
   const res = await invoke(linkedLaunch());
   const speech = speechOf(res.response);
-  assert.match(speech, /Mail reader/);
+  assert.match(speech, /Email reader/);
   assert.match(speech, /2 unread messages/);
   assert.match(speech, /From Maya/);
   assert.match(speech, /Project update/);

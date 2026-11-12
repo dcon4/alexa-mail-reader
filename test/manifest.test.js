@@ -22,17 +22,17 @@ const model = JSON.parse(
   ),
 );
 
-test('invocation name is exactly "mail reader"', () => {
+test('invocation name is exactly "email reader"', () => {
   assert.equal(
     model.interactionModel.languageModel.invocationName,
-    'mail reader',
+    'email reader',
   );
 });
 
-test('manifest name is Mail Reader', () => {
+test('manifest name is Email Reader', () => {
   assert.equal(
     manifest.manifest.publishingInformation.locales['en-US'].name,
-    'Mail Reader',
+    'Email Reader',
   );
 });
 
@@ -42,7 +42,7 @@ test('every example phrase uses the invocation name', () => {
       .examplePhrases;
   assert.ok(phrases.length >= 1 && phrases.length <= 3);
   for (const phrase of phrases) {
-    assert.match(phrase.toLowerCase(), /mail reader/);
+    assert.match(phrase.toLowerCase(), /email reader/);
   }
 });
 

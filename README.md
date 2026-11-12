@@ -1,4 +1,4 @@
-# Mail Reader — Alexa Gmail Skill
+# Email Reader — Alexa Gmail Skill
 
 An Alexa skill that reads Gmail by voice and sends replies, built for
 a blind end user. Companion to the VoiceGmail Android app
@@ -18,9 +18,11 @@ for the live phase checklist.
 
 ## Layout
 
-- `skill-package/skill.json` — skill manifest (name: Mail Reader)
+- `skill-package/skill.json` — skill manifest (official name:
+  Email Reader)
 - `skill-package/interactionModels/custom/en-US.json` — voice model,
-  invocation name `mail reader`
+  primary invocation name `email reader` (alias phrase `mail reader`
+  still recognized by Alexa's name matching)
 - `src/index.js` — Lambda handler (stub until Phase 2)
 - `test/` — unit tests run by CI
 - `.github/workflows/ci.yml` — tests plus deploy-bundle artifact on

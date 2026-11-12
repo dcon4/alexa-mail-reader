@@ -1,4 +1,4 @@
-# Mail Reader — project agent addendum
+# Email Reader — project agent addendum
 
 Project-specific rules. The global rules live in
 `~/.config/opencode/AGENTS.md`; read that first. Anything below only
@@ -16,7 +16,12 @@ must stay green and must keep `if-no-files-found: error`.
 
 - Plan report:
   `/mnt/ls-share/opencode/reports/alexa-gmail-skill-plan-fleshed-out-2026-11-09.txt`
-- Invocation name: `mail reader`
+- Official name: `Email Reader` (manifest display name); primary
+  invocation name: `email reader`; alias phrase `mail reader` (2026-11-12
+  rename, user directive — Amazon allows only ONE guaranteed invocation
+  name, so the alias relies on Alexa's name matching; verify both in
+  testing and if the alias fails, options are teaching the primary
+  phrase or a second alias skill hitting the same endpoint)
 - Google Cloud project: reuse VoiceGmail's project `359413552450`
 - Linking design: direct Google account linking (plan section 7.1);
   section 7.2 fallback only if Phase 3 fails
@@ -41,7 +46,7 @@ must stay green and must keep `if-no-files-found: error`.
       - Unlinked responses return LinkAccount card + plan wording
       - Linked detection uses `context.System.user.accessToken`
       - Dev skills do NOT appear in Alexa app search; path is
-        More -> Skills & Games -> Your Skills -> Dev tab -> Mail Reader
+        More -> Skills & Games -> Your Skills -> Dev tab -> Email Reader
         -> ENABLE TO USE (same Amazon account as developer)
       - Local debug via `ask run` does NOT route traffic; fell back to
         ngrok HTTPS tunnel (Phase 6 Lambda is the permanent home later)
