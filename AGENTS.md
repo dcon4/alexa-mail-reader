@@ -48,9 +48,17 @@ must stay green and must keep `if-no-files-found: error`.
       - Local HTTP bridge: `local-server.js` on 127.0.0.1:8443 wraps
         the ASK handler (GET /health, POST invoke); logs intent name
         and response speech
-      - ngrok free plan allows one endpoint; systemd
-        `ngrok-tunnel.service` (opencode) must stay stopped while the
-        alexa tunnel runs; config `/tmp/opencode/ngrok-alexa-only.yml`
+      - ngrok free plan allows one endpoint; opencode's
+        `ngrok-tunnel.service` must stay stopped while the alexa
+        tunnel runs — it auto-started at boot on the 2026-11-11
+        reboot and STOLE the pinned hostname, so it is now stopped
+        AND disabled (re-enable with `systemctl --user enable
+        ngrok-tunnel.service` only when the alexa tunnel is off);
+        alexa tunnel config lives at
+        `~/.config/ngrok/alexa-mail-reader.yml` (mode 600, home dir —
+        NOT /tmp, which is wiped on reboot; format: `version: "2"`,
+        top-level `authtoken`, tunnel key `hostname:` — ngrok
+        3.39.7 rejects `version: "3"`/`domain:` for this setup)
       - Ad-hoc `node local-server` / `ngrok` processes die when agent
         tool sessions recycle (ngrok got a stop signal 2026-11-11
         17:03; the next three user asks all failed with Amazon's
