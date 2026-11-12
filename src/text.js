@@ -25,28 +25,61 @@ function attachmentNames(payload, out = []) {
 }
 
 const ENTITIES = {
-  '&amp;': '&',
-  '&lt;': '<',
-  '&gt;': '>',
-  '&quot;': '"',
-  '&#39;': "'",
-  '&#x27;': "'",
-  '&nbsp;': ' ',
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
+  hellip: '...', mdash: '—', ndash: '–',
+  rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“',
+  shy: '', zwj: '', zwnj: '',
+  copy: '©', trade: '™', reg: '®', bull: '•', middot: '·',
 };
 
+function cp(code) {
+  if (!Number.isFinite(code) || code <= 0 || code > 0x10ffff) return '';
+  try {
+    return String.fromCodePoint(code);
+  } catch (e) {
+    return '';
+  }
+}
+
 function decodeEntities(s) {
-  return s.replace(/&(?:amp|lt|gt|quot|nbsp|#39|#x27);/g, (m) => ENTITIES[m] || m);
+  return s
+    .replace(/&#x([0-9a-f]{1,6});/gi, (m, h) => cp(parseInt(h, 16)))
+    .replace(/&#(\d{1,7});/g, (m, d) => cp(parseInt(d, 10)))
+    .replace(/&([a-z][a-z0-9]{1,9});/gi, (m, name) => {
+      const key = name.toLowerCase();
+      return key in ENTITIES ? ENTITIES[key] : ' ';
+    });
+}
+
+function stripFormatChars(s) {
+  return s.replace(/\p{Cf}/gu, ' ');
 }
 
 function htmlToText(html) {
-  let s = html;
-  s = s.replace(/<script[\s\S]*?<\/script>/gi, ' ');
-  s = s.replace(/<style[\s\S]*?<\/style>/gi, ' ');
-  s = s.replace(/<\/(p|div|tr|li|h[1-6])\s*>/gi, '\n');
-  s = s.replace(/<br\s*\/?>/gi, '\n');
-  s = s.replace(/<[^>]+>/g, ' ');
-  s = decodeEntities(s);
+  let s = String(html == null ? '' : html);
+  for (let i = 0; i < 3; i++) {
+    s = s.replace(/<script[\s\S]*?<\/script>/gi, ' ');
+    s = s.replace(/<style[\s\S]*?<\/style>/gi, ' ');
+    s = s.replace(/<!--[\s\S]*?-->/gi, ' ');
+    s = s.replace(/<!\[CDATA\[[\s\S]*?\]\]>/gi, ' ');
+    s = s.replace(
+      /<\/(p|div|tr|td|th|li|h[1-6]|section|article|table)\s*>/gi,
+      '\n',
+    );
+    s = s.replace(/<br\s*\/?>/gi, '\n');
+    s = s.replace(/<[^>]+>/g, ' ');
+    s = decodeEntities(s);
+  }
+  s = s.replace(/<!--|-->/g, ' ');
+  s = stripFormatChars(s);
+  s = s.replace(/[ \t]+/g, ' ');
   return s;
+}
+
+function looksLikeBrokenPlain(s) {
+  return /<!doctype|<html[\s>]|<table[\s>]|<style[\s>]|&lt;\/?(?:html|table|div|tr|td)\b|font-family\s*:/i.test(
+    s,
+  );
 }
 
 function cleanText(raw) {
@@ -126,9 +159,16 @@ function extractBody(fullMessage) {
   const payload = fullMessage.payload;
   const plain = findPart(payload, 'text/plain');
   const html = findPart(payload, 'text/html');
+  const plainRaw = plain ? decodeB64Url(plain) : null;
+  const htmlRaw = html ? decodeB64Url(html) : null;
   let raw = '';
-  if (plain) raw = decodeB64Url(plain);
-  else if (html) raw = htmlToText(decodeB64Url(html));
+  if (plainRaw && !(htmlRaw && looksLikeBrokenPlain(plainRaw))) {
+    raw = stripFormatChars(decodeEntities(plainRaw));
+  } else if (htmlRaw) {
+    raw = htmlToText(htmlRaw);
+  } else if (plainRaw) {
+    raw = stripFormatChars(decodeEntities(plainRaw));
+  }
   const cleaned = stripEmoji(scrubUrls(cleanText(raw)));
   return {
     text: cleaned,

@@ -108,6 +108,14 @@ must stay green and must keep `if-no-files-found: error`.
       - Spoken text is sanitized: URLs become their bare domain
         (never paths or query strings), emoji are stripped — request
         from user 2026-11-11 after real-mail testing
+      - Business-email HTML extraction hardened (2026-11-12, user
+        report: SoFi/Home Depot read as raw markup): entity decoding
+        now covers numeric (decimal/hex) and named entities with
+        unknown ones dropped, zero-width/format chars stripped,
+        HTML comments (incl. Outlook conditional blocks) removed
+        before and after decode, entity-encoded markup re-stripped
+        in a 3-pass loop, and a broken plain-text part (CSS or
+        escaped tags) falls back to the HTML part
       - Gmail link verified working live 2026-11-11 (launch speaks
         real unread list with relative times)
       - Skill ID checked on every request (`src/index.js` SKILL_ID)
@@ -132,7 +140,7 @@ must stay green and must keep `if-no-files-found: error`.
         failures). Reliable entries are the ask forms: "Alexa, ask
         mail reader to read my email / read it / how many unread"
       - Progressive "Checking your mail" phrase deferred to Phase 6
-      - 72 tests green (handler + gmail + text + speech + store)
+      - 76 tests green (handler + gmail + text + speech + store)
       - Pending: scripted acceptance run — open, count, read message 1
         with a continue hop on the long HTML fixture, jump to message
         3, search from a sender, stop; every utterance first try

@@ -132,3 +132,61 @@ test('extractBody scrubs URLs and emoji from the spoken text', () => {
   assert.doesNotMatch(out.text, /🎉/);
   assert.match(out.text, /Hello/);
 });
+
+test('htmlToText removes MSO conditional comments without leftovers', () => {
+  const html =
+    '<!--[if !mso]><!--><p>After mso</p><!--<![endif]-->' +
+    '<!-- plain comment --> trailing --> debris';
+  const out = textx.htmlToText(html);
+  assert.match(out, /After mso/);
+  assert.doesNotMatch(out, /-->/);
+  assert.doesNotMatch(out, /<!--/);
+  assert.doesNotMatch(out, /plain comment/);
+});
+
+test('htmlToText decodes numeric entities and strips format junk', () => {
+  const html =
+    '<p>Festive &#847; &zwnj; &#847; &nbsp;deal &mdash; today</p>';
+  const out = textx.htmlToText(html);
+  assert.match(out, /Festive/);
+  assert.match(out, /deal — today/);
+assert.doesNotMatch(out, /&#847;/);
+  assert.doesNotMatch(out, /&zwnj;/);
+  assert.doesNotMatch(out, /&nbsp;|&#160;/);
+});
+
+test('htmlToText strips markup that was entity-encoded', () => {
+  const html =
+    '<p>&lt;table class=&quot;fullwidth&quot; style=&quot;font-family: x;&quot;&gt;' +
+    'PERSONAL LOANS&lt;/table&gt;</p>';
+  const out = textx.htmlToText(html);
+  assert.match(out, /PERSONAL LOANS/);
+  assert.doesNotMatch(out, /&lt;/);
+  assert.doesNotMatch(out, /<table/);
+  assert.doesNotMatch(out, /font-family/);
+});
+
+test('extractBody uses the HTML part when the plain part is broken', () => {
+  const msg = {
+    payload: {
+      mimeType: 'multipart/alternative',
+      body: {},
+      parts: [
+        {
+          mimeType: 'text/html',
+          body: { data: b64('<p>Good readable content</p>') },
+        },
+        {
+          mimeType: 'text/plain',
+          body: {
+            data: b64(
+              'body, table, td { font-family: Arial; }\n&lt;table bgcolor=&quot;x&quot;&gt;',
+            ),
+          },
+        },
+      ],
+    },
+  };
+  const out = textx.extractBody(msg);
+  assert.equal(out.text, 'Good readable content');
+});
