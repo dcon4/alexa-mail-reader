@@ -21,9 +21,9 @@ for the live phase checklist.
 - `skill-package/skill.json` — skill manifest (official name:
   Email Reader)
 - `skill-package/interactionModels/custom/en-US.json` — voice model,
-  primary invocation name `email reader` (alias phrase `mail reader`
-  still recognized by Alexa's name matching)
-- `src/index.js` — Lambda handler (stub until Phase 2)
+  invocation name `email reader` (the pre-rename phrase "mail reader"
+  does not resolve — one invocation name per skill)
+- `src/index.js` — ASK SDK request handler (browse, reply, compose)
 - `test/` — unit tests run by CI
 - `.github/workflows/ci.yml` — tests plus deploy-bundle artifact on
   every push and pull request

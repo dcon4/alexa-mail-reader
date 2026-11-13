@@ -96,3 +96,56 @@ test('a network failure retries once then raises status 0', async () => {
   );
   assert.equal(calls.length, 2);
 });
+
+test('sendMessage POSTs base64url raw MIME with threading headers', async () => {
+  global.fetch = async (url, opts) => {
+    calls.push({ url: String(url), opts });
+    return jsonResponse({ id: 'sent-1' });
+  };
+  const res = await gmail.sendMessage('tok', {
+    to: 'maya@gmail.com',
+    subject: 'Re: Project update',
+    body: 'sounds good',
+    threadId: 'thread-9',
+    inReplyTo: '<abc@example.com>',
+    references: '<abc@example.com>',
+  });
+  assert.equal(res.id, 'sent-1');
+  assert.equal(calls.length, 1);
+  assert.match(calls[0].url, /messages\/send/);
+  assert.equal(calls[0].opts.method, 'POST');
+  assert.equal(calls[0].opts.headers['Content-Type'], 'application/json');
+  const payload = JSON.parse(calls[0].opts.body);
+  assert.equal(payload.threadId, 'thread-9');
+  const mime = Buffer.from(payload.raw, 'base64url').toString('utf8');
+  assert.match(mime, /To: maya@gmail\.com/);
+  assert.match(mime, /Subject: Re: Project update/);
+  assert.match(mime, /In-Reply-To: <abc@example\.com>/);
+  assert.match(mime, /sounds good/);
+});
+
+test('sendMessage omits threading and subject for a plain new message', async () => {
+  global.fetch = async (url, opts) => {
+    calls.push({ url: String(url), opts });
+    return jsonResponse({ id: 'sent-2' });
+  };
+  await gmail.sendMessage('tok', { to: 'bob@example.com', body: 'hello' });
+  const payload = JSON.parse(calls[0].opts.body);
+  assert.equal(payload.threadId, undefined);
+  const mime = Buffer.from(payload.raw, 'base64url').toString('utf8');
+  assert.doesNotMatch(mime, /In-Reply-To/);
+  assert.doesNotMatch(mime, /^Subject:/m);
+  assert.match(mime, /MIME-Version: 1\.0/);
+  assert.match(mime, /Content-Type: text\/plain; charset="UTF-8"/);
+});
+
+test('buildRaw folds header newlines so no extra headers can appear', () => {
+  const raw = gmail.buildRaw({
+    to: 'a@b.c\r\nBcc: evil@x.y',
+    subject: 'hi',
+    body: 'x',
+  });
+  const mime = Buffer.from(raw, 'base64url').toString('utf8');
+  assert.doesNotMatch(mime, /^Bcc:/m);
+  assert.match(mime, /^To: a@b\.c Bcc: evil@x\.y$/m);
+});

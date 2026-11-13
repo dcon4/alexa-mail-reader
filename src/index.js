@@ -275,6 +275,73 @@ function isGmailError(e) {
   return Boolean(e) && e.name === 'GmailError';
 }
 
+function parseAddress(from) {
+  const s = String(from || '').trim();
+  const angle = s.match(/^(.*?)<(.+?)>\s*$/s);
+  if (angle) {
+    return {
+      name: angle[1].replace(/^"|"$/g, '').trim(),
+      address: angle[2].trim(),
+    };
+  }
+  const simple = s.match(/([^\s,;]+@[^\s,;]+)/);
+  if (simple) return { name: '', address: simple[1] };
+  return { name: s, address: '' };
+}
+
+function elicitedDictation(handlerInput, state, promptSpeech) {
+  state.lastSpeech = promptSpeech;
+  return saveState(handlerInput, state)
+    .speak(promptSpeech)
+    .reprompt(promptSpeech)
+    .addElicitSlotDirective('addedText', { name: 'AddBodyIntent' })
+    .getResponse();
+}
+
+function readBackSpeech(draft) {
+  const named =
+    draft.mode === 'reply' &&
+    draft.toName &&
+    !String(draft.toName).includes('@');
+  const to = named
+    ? sp.escapeXml(sp.clip(sp.sanitize(draft.toName), 40)) +
+      ' at ' +
+      sp.escapeXml(
+        sp
+          .senderDomain(draft.to)
+          .split('.')
+          .filter(Boolean)
+          .join(' dot '),
+      )
+    : sp.escapeXml(sp.spellAddress(draft.to));
+  let s = 'To ' + to + '.';
+  const subj = String(draft.subject || '').trim();
+  if (subj) {
+    s += ' Subject: ' + sp.escapeXml(sp.clip(sp.sanitize(subj), 80)) + '.';
+  }
+  const body = String(draft.body || '').trim();
+  const long = body.length > 700;
+  const shown = long ? body.slice(0, 700).trim() : body;
+  s += ' You said: ' + sp.escapeXml(sp.sanitize(shown));
+  if (long) {
+    s +=
+      '. That is the first part. The whole ' +
+      body.length +
+      ' characters will be sent.';
+  }
+  s += '. Send it?';
+  return s;
+}
+
+function confirmDictation(handlerInput, state) {
+  const speech = readBackSpeech(state.draft);
+  state.lastSpeech = speech;
+  return saveState(handlerInput, state)
+    .speak(speech)
+    .reprompt('Say send it, add more, or no to discard.')
+    .getResponse();
+}
+
 const LaunchRequestHandler = {
   canHandle(handlerInput) {
     return (
@@ -333,37 +400,51 @@ const ComposeIntentHandler = {
     if (!isLinked(handlerInput)) {
       return linkAccountResponse(handlerInput);
     }
+    const slotVal = (n) =>
+      (req.intent.slots &&
+        req.intent.slots[n] &&
+        req.intent.slots[n].value) ||
+      '';
+    const state = withState(handlerInput);
     if (req.dialogState === 'IN_PROGRESS') {
-      return handlerInput.responseBuilder
-        .addDirective({ type: 'Dialog.Delegate' })
+      if (!slotVal('recipient')) {
+        return handlerInput.responseBuilder
+          .addDirective({ type: 'Dialog.Delegate' })
+          .getResponse();
+      }
+      const prompt =
+        sp.escapeXml(sp.spellAddress(slotVal('recipient'))) +
+        '. What is the subject? Say skip to leave it out.';
+      state.lastSpeech = prompt;
+      return saveState(handlerInput, state)
+        .speak(prompt)
+        .reprompt('What is the subject? Say skip to leave it out.')
+        .addElicitSlotDirective('subject', { name: 'ComposeIntent' })
         .getResponse();
     }
-    const state = withState(handlerInput);
-    const recipient =
-      (req.intent.slots &&
-        req.intent.slots.recipient &&
-        req.intent.slots.recipient.value) ||
-      'nobody yet';
+    const recipient = slotVal('recipient').trim();
+    let subject = slotVal('subject').trim();
+    if (/^(skip|none|no subject|nothing)$/i.test(subject)) subject = '';
+    if (!recipient) {
+      return handlerInput.responseBuilder
+        .speak('Who should I send it to?')
+        .reprompt('Tell me the email address or name of the person to send to.')
+        .addElicitSlotDirective('recipient', { name: 'ComposeIntent' })
+        .getResponse();
+    }
     state.draft = {
+      mode: 'compose',
       to: recipient,
-      subject:
-        (req.intent.slots &&
-          req.intent.slots.subject &&
-          req.intent.slots.subject.value) ||
-        '',
-      body:
-        (req.intent.slots &&
-          req.intent.slots.body &&
-          req.intent.slots.body.value) ||
-        '',
+      toName: '',
+      subject,
+      body: '',
+      threadId: '',
+      inReplyTo: '',
     };
-    return keepOpen(
+    return elicitedDictation(
       handlerInput,
-      `Composing an email to ${sp.escapeXml(recipient)}. ` +
-        'When the connection is ready, you will hear the address ' +
-        'read back before anything is sent. Say help for choices.',
-      MENU,
       state,
+      'What should the message say? Start with add, then your message.',
     );
   },
 };
@@ -502,30 +583,108 @@ const MenuIntentHandler = {
                 : MENU);
           }
           break;
-        case 'ReplyIntent':
-          speech =
-            'Reply flow. ' +
-            'When it is connected, dictate your reply and you will ' +
-            'hear it read back before sending.';
-          break;
-        case 'AddBodyIntent': {
-          const added = slots.addedText && slots.addedText.value;
-          if (state.draft) {
-            state.draft.body = state.draft.body
-              ? `${state.draft.body} ${added || ''}`
-              : added || '';
+        case 'ReplyIntent': {
+          if (!state.msgIds.length) await loadUnread(state);
+          const meta = state.metas[state.msgIndex];
+          const currentId = state.msgIds[state.msgIndex];
+          if (!meta || !currentId) {
+            speech = 'There is no message open. Say read my email first.';
+            break;
           }
-          speech = `Added: ${sp.escapeXml(added || 'nothing')}. Say send it, or add more.`;
+          const from = parseAddress(meta.from);
+          if (!from.address) {
+            speech =
+              'I cannot tell the sender address from this message. ' + MENU;
+            break;
+          }
+          const full = await gmail.getMessageFull(state.token, currentId);
+          const headers = {};
+          for (const h of (full.payload && full.payload.headers) || []) {
+            headers[String(h.name).toLowerCase()] = h.value;
+          }
+          const subj = String(meta.subject || '').trim();
+          state.draft = {
+            mode: 'reply',
+            to: from.address,
+            toName: from.name || from.address,
+            subject: /^re:/i.test(subj) ? subj : subj ? 'Re: ' + subj : '',
+            body: '',
+            threadId: full.threadId || '',
+            inReplyTo: headers['message-id'] || '',
+          };
+          return elicitedDictation(
+            handlerInput,
+            state,
+            'What should I say? Start with your message.',
+          );
+        }
+        case 'AddBodyIntent': {
+          const added = String(
+            (slots.addedText && slots.addedText.value) || '',
+          ).trim();
+          if (!state.draft) {
+            speech =
+              'There is nothing to add to. Say reply to answer a message, ' +
+              'or compose an email to start one.';
+            break;
+          }
+          if (!added) {
+            return elicitedDictation(
+              handlerInput,
+              state,
+              'I did not catch any words. Start with add, then your message.',
+            );
+          }
+          const cur = String(state.draft.body || '');
+          const next = cur ? cur + ' ' + added : added;
+          state.draft.body = next.slice(0, 8000);
+          return confirmDictation(handlerInput, state);
+        }
+        case 'ConfirmSendIntent': {
+          if (!state.draft || !state.draft.to) {
+            speech = 'There is nothing to send. Say reply, or compose an email.';
+            break;
+          }
+          if (!String(state.draft.body || '').trim()) {
+            return elicitedDictation(
+              handlerInput,
+              state,
+              'The message has no words yet. Start with add, then your message.',
+            );
+          }
+          const d = state.draft;
+          await gmail.sendMessage(state.token, {
+            to: d.to,
+            subject: d.subject,
+            body: d.body,
+            threadId: d.threadId || undefined,
+            inReplyTo: d.inReplyTo || undefined,
+            references: d.inReplyTo || undefined,
+          });
+          state.draft = null;
+          const named =
+            d.mode === 'reply' &&
+            d.toName &&
+            !String(d.toName).includes('@');
+          const toSpoken = named
+            ? sp.escapeXml(sp.clip(sp.sanitize(d.toName), 40))
+            : sp.escapeXml(sp.spellAddress(d.to));
+          speech = 'Sent to ' + toSpoken + '. ' + MENU;
           break;
         }
-        case 'ConfirmSendIntent':
-          speech = 'Send confirmed. Nothing has been sent in this test build.';
+        case 'DiscardIntent': {
+          if (!state.draft) {
+            speech = 'There was nothing to discard. ' + MENU;
+            break;
+          }
+          const wasReply = state.draft.mode !== 'compose';
           state.draft = null;
+          speech =
+            (wasReply ? 'Reply discarded.' : 'Draft discarded.') +
+            ' Anything else? ' +
+            MENU;
           break;
-        case 'DiscardIntent':
-          speech = 'Discarded. Nothing was sent.';
-          state.draft = null;
-          break;
+        }
         case 'SearchIntent': {
           const sender = slots.sender && slots.sender.value;
           if (!sender) {

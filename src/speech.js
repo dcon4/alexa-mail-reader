@@ -70,6 +70,23 @@ function countText(count, cap) {
   return count + (count === 1 ? ' unread message' : ' unread messages');
 }
 
+function senderDomain(from) {
+  const s = String(from || '');
+  const m = s.match(/<[^>]*@([^>,;\s]+)>/) || s.match(/@([^-,;\s]+)/);
+  return m ? m[1] : '';
+}
+
+function spellAddress(email) {
+  const s = String(email || '').trim();
+  const at = s.indexOf('@');
+  if (at < 1) return s;
+  const local = s.slice(0, at);
+  const domain = s.slice(at + 1);
+  const spelled = local.split('').join(' ');
+  const dom = domain.split('.').filter(Boolean).join(' dot ');
+  return spelled + ' at ' + dom;
+}
+
 module.exports = {
   escapeXml,
   clip,
@@ -78,4 +95,6 @@ module.exports = {
   summaryLine,
   countText,
   sanitize,
+  senderDomain,
+  spellAddress,
 };

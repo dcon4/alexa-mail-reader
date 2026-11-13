@@ -155,7 +155,32 @@ must stay green and must keep `if-no-files-found: error`.
       - Remaining Phase 4 loose end CLOSED 2026-11-12: alias phrase
         "mail reader" fails live (simulator resolved it, real Alexa+
         did not); primary "email reader" is the only phrase to teach
-- [ ] Phase 5 — reply and compose with confirmation
+- [ ] Phase 5 — reply and compose with confirmation (implementation
+      complete 2026-11-12, awaiting live voice acceptance)
+      - `gmail.sendMessage` POSTs base64url raw MIME (To/Subject/
+        In-Reply-To/References with header newlines folded, optional
+        threadId); same 4s timeout + one retry as all Gmail calls
+      - Reply: builds a threaded draft from the open message (sender
+        address parsed from the From header, Re: subject, Message-ID
+        and threadId from the full fetch), then a
+        `Dialog.ElicitSlot` on AddBodyIntent captures ONE bare
+        dictated utterance (no "add" prefix needed right after
+        "reply")
+      - Compose: dialog now elicits recipient → subject (spells the
+        address back letter by letter first; "say skip" leaves it
+        blank) → then the same dictation elicitation
+      - Read-back gate per plan 8.4/8.5: "To Maya at gmail dot com"
+        (or the spelled address for compose) + subject + "You said:
+        ..." + "Send it?" — "send it"/"yes" sends ("Sent to ..."),
+        "no" discards ("Reply discarded."), "add ..." appends;
+        8,000-char body cap, read-back clipped at 700 chars
+      - Drafts live only in session attributes — never persisted to
+        the position store (plan: losing an unsent draft on timeout
+        is acceptable until Phase 7)
+      - 89 tests green (+12: raw MIME send, reply threading,
+        read-back, discard, both new dialog prompts)
+      - Model push verified live: dialog intents ComposeIntent +
+        AddBodyIntent, subject and dictation elicitation prompts
 - [ ] Phase 6 — hardening, log share endpoint, verbose toggle,
       deploy workflow
 - [ ] Phase 7 — optional extras (mark as read, contacts by name,

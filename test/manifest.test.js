@@ -99,6 +99,20 @@ test('compose dialog elicits the recipient slot', () => {
   assert.ok(prompt, 'elicitation prompt definition missing');
 });
 
+test('dialog covers the subject step and free dictation elicitation', () => {
+  const dialog = model.interactionModel.dialog;
+  const compose = dialog.intents.find((i) => i.name === 'ComposeIntent');
+  const subject = compose.slots.find((s) => s.name === 'subject');
+  assert.ok(subject, 'compose subject slot missing from dialog');
+  const addBody = dialog.intents.find((i) => i.name === 'AddBodyIntent');
+  assert.ok(addBody, 'AddBodyIntent missing from dialog');
+  const addedText = addBody.slots.find((s) => s.name === 'addedText');
+  assert.ok(addedText, 'addedText slot missing from dialog');
+  const ids = model.interactionModel.prompts.map((p) => p.id);
+  assert.ok(ids.includes('Elicit.Slot.ComposeIntent.subject'));
+  assert.ok(ids.includes('Elicit.Slot.AddBodyIntent.addedText'));
+});
+
 test('no reserved words appear as custom intent names', () => {
   const names = model.interactionModel.languageModel.intents.map(
     (i) => i.name,

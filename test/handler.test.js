@@ -63,6 +63,8 @@ function stubGmail(overrides = {}) {
       ids.map((id) => META_FIXTURE.find((m) => m.id === id) || META_FIXTURE[0]));
   gmail.getMessageFull =
     overrides.getMessageFull || (async () => fullMessage('Hello world. All fine.'));
+  gmail.sendMessage =
+    overrides.sendMessage || (async () => ({ id: 'sent-1' }));
 }
 
 stubGmail();
@@ -362,7 +364,7 @@ test('ComposeIntent dialog IN_PROGRESS returns a silent delegation response', as
   assert.equal(res.response.directives[0].type, 'Dialog.Delegate');
 });
 
-test('ComposeIntent completed stores the draft and echoes the recipient', async () => {
+test('ComposeIntent completed stores the draft and asks for the message', async () => {
   const res = await invoke(
     intentEvent('ComposeIntent', {
       linked: true,
@@ -372,22 +374,71 @@ test('ComposeIntent completed stores the draft and echoes the recipient', async 
           value: 'maya@example.com',
           confirmationStatus: 'NONE',
         },
+        subject: {
+          name: 'subject',
+          value: 'skip',
+          confirmationStatus: 'NONE',
+        },
       },
     }),
   );
-  assert.match(speechOf(res.response), /maya@example\.com/);
+  const speech = speechOf(res.response);
+  assert.match(speech, /What should the message say/);
   assert.equal(res.sessionAttributes.draft.to, 'maya@example.com');
+  assert.equal(res.sessionAttributes.draft.mode, 'compose');
+  assert.equal(res.sessionAttributes.draft.subject, '');
+  assert.equal(res.response.directives[0].type, 'Dialog.ElicitSlot');
+  assert.equal(res.response.shouldEndSession, false);
 });
 
-test('ConfirmSendIntent clears the draft', async () => {
+test('compose dialog with a recipient spells the address and asks subject', async () => {
+  const res = await invoke(
+    intentEvent('ComposeIntent', {
+      linked: true,
+      dialogState: 'IN_PROGRESS',
+      slots: {
+        recipient: {
+          name: 'recipient',
+          value: 'bob@example.com',
+          confirmationStatus: 'NONE',
+        },
+      },
+    }),
+  );
+  const speech = speechOf(res.response);
+  assert.match(speech, /b o b at example dot com/);
+  assert.match(speech, /subject/i);
+  assert.match(speech, /skip/i);
+  assert.equal(res.response.directives[0].type, 'Dialog.ElicitSlot');
+});
+
+test('ConfirmSendIntent sends the draft and clears it', async () => {
+  let sent = null;
+  stubGmail({
+    sendMessage: async (token, opts) => {
+      sent = opts;
+      return { id: 'sent-1' };
+    },
+  });
   const res = await invoke(
     intentEvent('ConfirmSendIntent', {
       linked: true,
-      attributes: { draft: { to: 'x@y.z', body: 'hello' } },
+      attributes: {
+        draft: {
+          mode: 'compose',
+          to: 'x@y.z',
+          subject: 'Hi',
+          body: 'hello',
+        },
+      },
     }),
   );
+  assert.match(speechOf(res.response), /Sent to/);
   assert.equal(res.sessionAttributes.draft, null);
-  assert.match(speechOf(res.response), /confirmed/);
+  assert.ok(sent);
+  assert.equal(sent.to, 'x@y.z');
+  assert.equal(sent.body, 'hello');
+  assert.equal(sent.subject, 'Hi');
 });
 
 test('FallbackIntent offers the real menu', async () => {
@@ -676,4 +727,138 @@ test('how many unread does not reset the place in the list', async () => {
   assert.match(speechOf(res.response), /2 unread messages/);
   assert.equal(res.sessionAttributes.msgIndex, 1);
   assert.equal(res.sessionAttributes.chunkIndex, 2);
+});
+
+test('reply opens dictation and stores a threaded draft', async () => {
+  stubGmail({
+    getMessageFull: async () => ({
+      threadId: 'thread-1',
+      payload: {
+        headers: [{ name: 'Message-ID', value: '<abc@example.com>' }],
+      },
+    }),
+  });
+  const res = await invoke(
+    intentEvent('ReplyIntent', {
+      linked: true,
+      attributes: {
+        msgIds: ['id1', 'id2'],
+        metas: META_FIXTURE,
+        msgIndex: 0,
+        chunkIndex: -1,
+      },
+    }),
+  );
+  assert.match(speechOf(res.response), /What should I say/);
+  assert.equal(res.response.directives[0].type, 'Dialog.ElicitSlot');
+  const d = res.sessionAttributes.draft;
+  assert.equal(d.mode, 'reply');
+  assert.equal(d.to, 'maya@gmail.com');
+  assert.equal(d.toName, 'Maya');
+  assert.equal(d.subject, 'Re: Project update');
+  assert.equal(d.threadId, 'thread-1');
+  assert.equal(d.inReplyTo, '<abc@example.com>');
+});
+
+test('dictating a reply reads it back and asks to send', async () => {
+  const res = await invoke(
+    intentEvent('AddBodyIntent', {
+      linked: true,
+      attributes: {
+        draft: {
+          mode: 'reply',
+          to: 'maya@gmail.com',
+          toName: 'Maya',
+          subject: 'Re: Project update',
+          body: '',
+          threadId: 't',
+          inReplyTo: '',
+        },
+      },
+      slots: {
+        addedText: {
+          name: 'addedText',
+          value: 'sounds good see you Thursday',
+          confirmationStatus: 'NONE',
+        },
+      },
+    }),
+  );
+  const speech = speechOf(res.response);
+  assert.match(speech, /To Maya at gmail dot com/);
+  assert.match(speech, /Re: Project update/);
+  assert.match(speech, /sounds good see you Thursday/);
+  assert.match(speech, /Send it\?/);
+  assert.equal(
+    res.sessionAttributes.draft.body,
+    'sounds good see you Thursday',
+  );
+  assert.equal(res.response.shouldEndSession, false);
+});
+
+test('compose read-back spells the address letter by letter', async () => {
+  const res = await invoke(
+    intentEvent('AddBodyIntent', {
+      linked: true,
+      attributes: {
+        draft: {
+          mode: 'compose',
+          to: 'bob@example.com',
+          subject: '',
+          body: '',
+          threadId: '',
+          inReplyTo: '',
+        },
+      },
+      slots: {
+        addedText: {
+          name: 'addedText',
+          value: 'lunch tomorrow',
+          confirmationStatus: 'NONE',
+        },
+      },
+    }),
+  );
+  const speech = speechOf(res.response);
+  assert.match(speech, /b o b at example dot com/);
+  assert.match(speech, /lunch tomorrow/);
+  assert.match(speech, /Send it\?/);
+});
+
+test('add with no draft explains the next step', async () => {
+  const res = await invoke(
+    intentEvent('AddBodyIntent', {
+      linked: true,
+      slots: {
+        addedText: {
+          name: 'addedText',
+          value: 'hi',
+          confirmationStatus: 'NONE',
+        },
+      },
+    }),
+  );
+  assert.match(speechOf(res.response), /nothing to add to/);
+});
+
+test('discard clears the reply draft with plan wording', async () => {
+  const res = await invoke(
+    intentEvent('DiscardIntent', {
+      linked: true,
+      attributes: { draft: { mode: 'reply', to: 'm@x.y', body: 'x' } },
+    }),
+  );
+  assert.match(speechOf(res.response), /Reply discarded/);
+  assert.equal(res.sessionAttributes.draft, null);
+});
+
+test('confirm with no draft says there is nothing to send', async () => {
+  const res = await invoke(intentEvent('ConfirmSendIntent', { linked: true }));
+  assert.match(speechOf(res.response), /nothing to send/);
+});
+
+test('reply with no messages says to read mail first', async () => {
+  stubGmail({ listMessageIds: async () => [] });
+  const res = await invoke(intentEvent('ReplyIntent', { linked: true }));
+  assert.match(speechOf(res.response), /no message open/);
 });

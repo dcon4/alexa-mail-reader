@@ -231,6 +231,31 @@
               "prompts": {
                 "elicitation": "Elicit.Slot.ComposeIntent.recipient"
               }
+            },
+            {
+              "name": "subject",
+              "type": "AMAZON.SearchQuery",
+              "elicitationRequired": true,
+              "confirmationRequired": false,
+              "prompts": {
+                "elicitation": "Elicit.Slot.ComposeIntent.subject"
+              }
+            }
+          ]
+        },
+        {
+          "name": "AddBodyIntent",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "addedText",
+              "type": "AMAZON.SearchQuery",
+              "elicitationRequired": true,
+              "confirmationRequired": false,
+              "prompts": {
+                "elicitation": "Elicit.Slot.AddBodyIntent.addedText"
+              }
             }
           ]
         }
@@ -251,6 +276,32 @@
           {
             "type": "PlainText",
             "value": "Tell me the email address or name of the person to send to."
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.ComposeIntent.subject",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "What is the subject? Say skip to leave it out."
+          },
+          {
+            "type": "PlainText",
+            "value": "Tell me the subject, or say skip for none."
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.AddBodyIntent.addedText",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "What should I say? Start with your message."
+          },
+          {
+            "type": "PlainText",
+            "value": "Go ahead. Start with add, then your message."
           }
         ]
       }
