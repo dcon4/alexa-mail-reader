@@ -13,6 +13,7 @@ process.env.POSITION_STORE_PATH = path.join(
 
 const { handler, SKILL_ID } = require('../src/index');
 const gmail = require('../src/gmail');
+const people = require('../src/people');
 
 function b64(text) {
   return Buffer.from(text, 'utf8').toString('base64')
@@ -67,10 +68,20 @@ function stubGmail(overrides = {}) {
     overrides.sendMessage || (async () => ({ id: 'sent-1' }));
 }
 
-stubGmail();
+function stubPeople(overrides = {}) {
+  people.searchContacts =
+    overrides.searchContacts ||
+    (async () => [
+      { name: 'Dad Example', email: 'dad@example.com' },
+      { name: 'Moonshine Jones', email: 'moon@shine.test' },
+    ]);
+}
+
+stubPeople();
 
 test.beforeEach(() => {
   stubGmail();
+  stubPeople();
   try {
     fs.unlinkSync(process.env.POSITION_STORE_PATH);
   } catch (e) {
@@ -411,6 +422,98 @@ test('compose recipient is phonetically corrected before drafting', async () => 
   );
   assert.equal(res.sessionAttributes.draft.to, 'dcon2000@gmail.com');
   assert.match(speechOf(res.response), /What should the message say/);
+});
+
+test('compose resolves a contact name to their address', async () => {
+  const res = await invoke(
+    intentEvent('ComposeIntent', {
+      linked: true,
+      slots: {
+        recipient: {
+          name: 'recipient',
+          value: 'dad',
+          confirmationStatus: 'NONE',
+        },
+        subject: {
+          name: 'subject',
+          value: 'test',
+          confirmationStatus: 'NONE',
+        },
+      },
+    }),
+  );
+  assert.equal(res.sessionAttributes.draft.to, 'dad@example.com');
+  assert.equal(res.sessionAttributes.draft.toName, 'Dad Example');
+  assert.match(speechOf(res.response), /What should the message say/);
+});
+
+test('compose subject step spells the resolved contact address', async () => {
+  const res = await invoke(
+    intentEvent('ComposeIntent', {
+      linked: true,
+      dialogState: 'IN_PROGRESS',
+      slots: {
+        recipient: {
+          name: 'recipient',
+          value: 'moonshine',
+          confirmationStatus: 'NONE',
+        },
+      },
+    }),
+  );
+  const speech = speechOf(res.response);
+  assert.match(speech, /m o o n at shine dot test/);
+  assert.match(speech, /subject/i);
+  assert.equal(res.response.directives[0].type, 'Dialog.ElicitSlot');
+});
+
+test('compose re-elicits the recipient when nothing resolves', async () => {
+  stubPeople({ searchContacts: async () => [] });
+  const res = await invoke(
+    intentEvent('ComposeIntent', {
+      linked: true,
+      slots: {
+        recipient: {
+          name: 'recipient',
+          value: 'zzz nobody',
+          confirmationStatus: 'NONE',
+        },
+        subject: {
+          name: 'subject',
+          value: 'test',
+          confirmationStatus: 'NONE',
+        },
+      },
+    }),
+  );
+  const speech = speechOf(res.response);
+  assert.match(speech, /could not turn that into an email address/);
+  assert.equal(res.response.directives[0].slotToElicit, 'recipient');
+  assert.ok(!res.sessionAttributes.draft);
+});
+
+test('search by contact name queries the resolved address', async () => {
+  let seenQ = null;
+  stubGmail({
+    listMessageIds: async (token, opts) => {
+      seenQ = opts.q;
+      return [];
+    },
+  });
+  const res = await invoke(
+    intentEvent('SearchIntent', {
+      linked: true,
+      slots: {
+        sender: {
+          name: 'sender',
+          value: 'dad',
+          confirmationStatus: 'NONE',
+        },
+      },
+    }),
+  );
+  assert.equal(seenQ, 'from:dad@example.com');
+  assert.match(speechOf(res.response), /no messages from/i);
 });
 
 test('compose dialog with a recipient spells the address and asks subject', async () => {

@@ -6,6 +6,7 @@ const textx = require('./text');
 const sp = require('./speech');
 const store = require('./store');
 const fixes = require('./fixes');
+const people = require('./people');
 
 const SKILL_ID = 'amzn1.ask.skill.9c554724-207c-464e-a0e2-ae3158077bf5';
 const LIST_CAP = 25;
@@ -357,6 +358,30 @@ function confirmDictation(handlerInput, state) {
     .getResponse();
 }
 
+async function resolveRecipient(state, raw) {
+  const fixed = fixes.fixAddress(raw);
+  if (fixed.includes('@')) return { address: fixed, name: '' };
+  try {
+    const contacts = await people.searchContacts(state.token, raw);
+    const m = people.bestMatch(raw, contacts);
+    if (m && m.email) return { address: m.email, name: m.name || '' };
+  } catch (e) {
+    console.log('[people] lookup failed:', e.message);
+  }
+  return null;
+}
+
+function recipientRetrySpeech(handlerInput, state) {
+  return saveState(handlerInput, state)
+    .speak(
+      'I could not turn that into an email address. ' +
+        'Say the full address, like name at gmail dot com.',
+    )
+    .reprompt('Say the full email address.')
+    .addDirective(elicitDirective('recipient', 'ComposeIntent'))
+    .getResponse();
+}
+
 const LaunchRequestHandler = {
   canHandle(handlerInput) {
     return (
@@ -410,7 +435,7 @@ const ComposeIntentHandler = {
       req.intent.name === 'ComposeIntent'
     );
   },
-  handle(handlerInput) {
+  async handle(handlerInput) {
     const req = handlerInput.requestEnvelope.request;
     if (!isLinked(handlerInput)) {
       return linkAccountResponse(handlerInput);
@@ -422,13 +447,16 @@ const ComposeIntentHandler = {
       '';
     const state = withState(handlerInput);
     if (req.dialogState === 'IN_PROGRESS') {
-      if (!slotVal('recipient')) {
+      const rawRecipient = slotVal('recipient');
+      if (!rawRecipient) {
         return handlerInput.responseBuilder
           .addDirective({ type: 'Dialog.Delegate' })
           .getResponse();
       }
+      const resolved = await resolveRecipient(state, rawRecipient);
+      if (!resolved) return recipientRetrySpeech(handlerInput, state);
       const prompt =
-        sp.escapeXml(sp.spellAddress(fixes.fixAddress(slotVal('recipient')))) +
+        sp.escapeXml(sp.spellAddress(resolved.address)) +
         '. What is the subject? Say skip to leave it out.';
       state.lastSpeech = prompt;
       return saveState(handlerInput, state)
@@ -437,20 +465,22 @@ const ComposeIntentHandler = {
         .addDirective(elicitDirective('subject', 'ComposeIntent'))
         .getResponse();
     }
-    const recipient = fixes.fixAddress(slotVal('recipient').trim());
+    const rawRecipient = slotVal('recipient').trim();
     let subject = slotVal('subject').trim();
     if (/^(skip|none|no subject|nothing)$/i.test(subject)) subject = '';
-    if (!recipient) {
+    if (!rawRecipient) {
       return handlerInput.responseBuilder
         .speak('Who should I send it to?')
         .reprompt('Tell me the email address or name of the person to send to.')
         .addDirective(elicitDirective('recipient', 'ComposeIntent'))
         .getResponse();
     }
+    const resolved = await resolveRecipient(state, rawRecipient);
+    if (!resolved) return recipientRetrySpeech(handlerInput, state);
     state.draft = {
       mode: 'compose',
-      to: recipient,
-      toName: '',
+      to: resolved.address,
+      toName: resolved.name,
       subject,
       body: '',
       threadId: '',
@@ -676,11 +706,9 @@ const MenuIntentHandler = {
             inReplyTo: d.inReplyTo || undefined,
             references: d.inReplyTo || undefined,
           });
-          state.draft = null;
+state.draft = null;
           const named =
-            d.mode === 'reply' &&
-            d.toName &&
-            !String(d.toName).includes('@');
+            d.toName && !String(d.toName).includes('@');
           const toSpoken = named
             ? sp.escapeXml(sp.clip(sp.sanitize(d.toName), 40))
             : sp.escapeXml(sp.spellAddress(d.to));
@@ -701,10 +729,22 @@ const MenuIntentHandler = {
           break;
         }
         case 'SearchIntent': {
-          const sender = slots.sender && slots.sender.value;
+          let sender = slots.sender && slots.sender.value;
           if (!sender) {
             speech = 'Who should I search for? ' + MENU;
             break;
+          }
+          if (!String(sender).includes('@')) {
+            try {
+              const contacts = await people.searchContacts(
+                state.token,
+                sender,
+              );
+              const m = people.bestMatch(sender, contacts);
+              if (m && m.email) sender = m.email;
+            } catch (e) {
+              console.log('[people] search lookup failed:', e.message);
+            }
           }
           await loadSearch(state, sender);
           if (!state.metas.length) {

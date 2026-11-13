@@ -178,8 +178,9 @@ must stay green and must keep `if-no-files-found: error`.
       - Drafts live only in session attributes — never persisted to
         the position store (plan: losing an unsent draft on timeout
         is acceptable until Phase 7)
-      - 94 tests green (+5 for phonetic address fixes over the Phase 5
-        set of 89)
+      - 102 tests green (Phase 5 set of 89 + phonetic fixes + contacts
+        lookup: people API client/matching + compose/search
+        resolution)
       - Phonetic address fixes ported from VoiceGmail
         `ContactMatcher.kt` (2026-11-13, user report: dcon2000 heard
         as decon2000): `src/fixes.js` applies the curated dcon-family
@@ -198,6 +199,20 @@ must stay green and must keep `if-no-files-found: error`.
         pattern: any skill command as door-opener, then all
         commands in-session; in-session dispatch is stable. No
         skill-side fix exists — Amazon routing only
+      - Contacts lookup pulled forward from Phase 7 (2026-11-13,
+        user request): `src/people.js` searches Google otherContacts
+        (the Gmail autocomplete pool, scope
+        `contacts.other.readonly`) — compose accepts a NAME (best
+        match resolved before the letter-by-letter read-back; no
+        match re-elicits the recipient) and search-by-sender maps a
+        name to `from:<address>`; `account-linking.json` in the repo
+        is the source of truth for the linking config — the ask-cli
+        `update-account-linking-info` gives a bare 400, use a direct
+        PUT to `.../stages/development/accountLinkingClient` with the
+        CLI access token from `~/.ask/cli_config` and the Google
+        client secret from the local secret file (body nested under
+        `accountLinkingRequest`, clientSecret required) — NEW SCOPE
+        REQUIRES THE USER TO RE-LINK GOOGLE before contacts resolve
 - [ ] Phase 6 — hardening, log share endpoint, verbose toggle,
       deploy workflow
 - [ ] Phase 7 — optional extras (mark as read, contacts by name,

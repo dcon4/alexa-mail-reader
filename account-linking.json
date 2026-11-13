@@ -1,0 +1,17 @@
+{
+  "accessTokenScheme": "REQUEST_BODY_CREDENTIALS",
+  "accessTokenUrl": "https://oauth2.googleapis.com/token",
+  "authorizationUrl": "https://accounts.google.com/o/oauth2/v2/auth?access_type=offline&prompt=consent",
+  "clientId": "359413552450-0v005jcolutf5ctj40mnik8so436qdl6.apps.googleusercontent.com",
+  "defaultTokenExpirationInSeconds": 3600,
+  "domains": [
+    "accounts.google.com",
+    "oauth2.googleapis.com"
+  ],
+  "scopes": [
+    "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/gmail.send",
+    "https://www.googleapis.com/auth/contacts.other.readonly"
+  ],
+  "type": "AUTH_CODE"
+}
