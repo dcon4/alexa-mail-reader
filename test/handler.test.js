@@ -751,6 +751,9 @@ test('reply opens dictation and stores a threaded draft', async () => {
   );
   assert.match(speechOf(res.response), /What should I say/);
   assert.equal(res.response.directives[0].type, 'Dialog.ElicitSlot');
+  assert.equal(res.response.directives[0].slotToElicit, 'addedText');
+  assert.equal(res.response.directives[0].updatedIntent.name, 'AddBodyIntent');
+  assert.ok(res.response.directives[0].updatedIntent.slots.addedText);
   const d = res.sessionAttributes.draft;
   assert.equal(d.mode, 'reply');
   assert.equal(d.to, 'maya@gmail.com');

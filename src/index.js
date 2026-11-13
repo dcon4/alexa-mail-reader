@@ -289,12 +289,26 @@ function parseAddress(from) {
   return { name: s, address: '' };
 }
 
+function elicitDirective(slotName, intentName) {
+  const slots = {};
+  slots[slotName] = { name: slotName, confirmationStatus: 'NONE' };
+  return {
+    type: 'Dialog.ElicitSlot',
+    slotToElicit: slotName,
+    updatedIntent: {
+      name: intentName,
+      confirmationStatus: 'NONE',
+      slots,
+    },
+  };
+}
+
 function elicitedDictation(handlerInput, state, promptSpeech) {
   state.lastSpeech = promptSpeech;
   return saveState(handlerInput, state)
     .speak(promptSpeech)
     .reprompt(promptSpeech)
-    .addElicitSlotDirective('addedText', { name: 'AddBodyIntent' })
+    .addDirective(elicitDirective('addedText', 'AddBodyIntent'))
     .getResponse();
 }
 
@@ -419,7 +433,7 @@ const ComposeIntentHandler = {
       return saveState(handlerInput, state)
         .speak(prompt)
         .reprompt('What is the subject? Say skip to leave it out.')
-        .addElicitSlotDirective('subject', { name: 'ComposeIntent' })
+        .addDirective(elicitDirective('subject', 'ComposeIntent'))
         .getResponse();
     }
     const recipient = slotVal('recipient').trim();
@@ -429,7 +443,7 @@ const ComposeIntentHandler = {
       return handlerInput.responseBuilder
         .speak('Who should I send it to?')
         .reprompt('Tell me the email address or name of the person to send to.')
-        .addElicitSlotDirective('recipient', { name: 'ComposeIntent' })
+        .addDirective(elicitDirective('recipient', 'ComposeIntent'))
         .getResponse();
     }
     state.draft = {

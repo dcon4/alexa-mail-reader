@@ -68,11 +68,14 @@ const server = http.createServer((req, res) => {
       event.context.System.user &&
       event.context.System.user.accessToken;
     const claims = accessToken ? tokenClaims(accessToken) : null;
+    const dialogState =
+      event && event.request && event.request.dialogState;
     console.log(
       new Date().toISOString(),
       'REQ',
       reqType,
       intentName ? 'intent=' + intentName : '',
+      dialogState ? 'dialog=' + dialogState : '',
       'locale=' + (event && event.request && event.request.locale),
       'linked=' + Boolean(accessToken),
       claims ? 'claims=' + JSON.stringify(claims) : ''
@@ -100,6 +103,12 @@ const server = http.createServer((req, res) => {
             out.response &&
             out.response.card &&
             out.response.card.type),
+        'dir=' +
+          JSON.stringify(
+            ((out && out.response && out.response.directives) || []).map(
+              (d) => d.type + (d.slotToElicit ? ':' + d.slotToElicit : ''),
+            ),
+          ),
         'speech=' + JSON.stringify(speech || null)
       );
     } catch (e) {
