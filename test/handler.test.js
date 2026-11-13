@@ -391,6 +391,28 @@ test('ComposeIntent completed stores the draft and asks for the message', async 
   assert.equal(res.response.shouldEndSession, false);
 });
 
+test('compose recipient is phonetically corrected before drafting', async () => {
+  const res = await invoke(
+    intentEvent('ComposeIntent', {
+      linked: true,
+      slots: {
+        recipient: {
+          name: 'recipient',
+          value: 'decon2000@gmail.com',
+          confirmationStatus: 'NONE',
+        },
+        subject: {
+          name: 'subject',
+          value: 'test',
+          confirmationStatus: 'NONE',
+        },
+      },
+    }),
+  );
+  assert.equal(res.sessionAttributes.draft.to, 'dcon2000@gmail.com');
+  assert.match(speechOf(res.response), /What should the message say/);
+});
+
 test('compose dialog with a recipient spells the address and asks subject', async () => {
   const res = await invoke(
     intentEvent('ComposeIntent', {

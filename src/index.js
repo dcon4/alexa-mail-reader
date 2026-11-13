@@ -5,6 +5,7 @@ const gmail = require('./gmail');
 const textx = require('./text');
 const sp = require('./speech');
 const store = require('./store');
+const fixes = require('./fixes');
 
 const SKILL_ID = 'amzn1.ask.skill.9c554724-207c-464e-a0e2-ae3158077bf5';
 const LIST_CAP = 25;
@@ -427,7 +428,7 @@ const ComposeIntentHandler = {
           .getResponse();
       }
       const prompt =
-        sp.escapeXml(sp.spellAddress(slotVal('recipient'))) +
+        sp.escapeXml(sp.spellAddress(fixes.fixAddress(slotVal('recipient')))) +
         '. What is the subject? Say skip to leave it out.';
       state.lastSpeech = prompt;
       return saveState(handlerInput, state)
@@ -436,7 +437,7 @@ const ComposeIntentHandler = {
         .addDirective(elicitDirective('subject', 'ComposeIntent'))
         .getResponse();
     }
-    const recipient = slotVal('recipient').trim();
+    const recipient = fixes.fixAddress(slotVal('recipient').trim());
     let subject = slotVal('subject').trim();
     if (/^(skip|none|no subject|nothing)$/i.test(subject)) subject = '';
     if (!recipient) {

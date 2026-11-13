@@ -179,6 +179,14 @@ must stay green and must keep `if-no-files-found: error`.
         is acceptable until Phase 7)
       - 89 tests green (+12: raw MIME send, reply threading,
         read-back, discard, both new dialog prompts)
+      - Phonetic address fixes ported from VoiceGmail
+        `ContactMatcher.kt` (2026-11-13, user report: dcon2000 heard
+        as decon2000): `src/fixes.js` applies the curated dcon-family
+        rules, NATO-letter mapping and verbal punctuation ("at"/"dot")
+        to the compose recipient only — generic letter-sound swaps
+        were contact-match variants there and are deliberately NOT
+        applied blind; the letter-by-letter read-back stays the
+        safety net
       - Model push verified live: dialog intents ComposeIntent +
         AddBodyIntent, subject and dictation elicitation prompts
 - [ ] Phase 6 — hardening, log share endpoint, verbose toggle,
