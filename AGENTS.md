@@ -155,8 +155,9 @@ must stay green and must keep `if-no-files-found: error`.
       - Remaining Phase 4 loose end CLOSED 2026-11-12: alias phrase
         "mail reader" fails live (simulator resolved it, real Alexa+
         did not); primary "email reader" is the only phrase to teach
-- [ ] Phase 5 — reply and compose with confirmation (implementation
-      complete 2026-11-12, awaiting live voice acceptance)
+- [x] Phase 5 — reply and compose with confirmation (accepted
+      2026-11-13: reply dictation + read-back + discard passed live;
+      compose + phonetic address fix + real send to self passed live)
       - `gmail.sendMessage` POSTs base64url raw MIME (To/Subject/
         In-Reply-To/References with header newlines folded, optional
         threadId); same 4s timeout + one retry as all Gmail calls
@@ -177,8 +178,8 @@ must stay green and must keep `if-no-files-found: error`.
       - Drafts live only in session attributes — never persisted to
         the position store (plan: losing an unsent draft on timeout
         is acceptable until Phase 7)
-      - 89 tests green (+12: raw MIME send, reply threading,
-        read-back, discard, both new dialog prompts)
+      - 94 tests green (+5 for phonetic address fixes over the Phase 5
+        set of 89)
       - Phonetic address fixes ported from VoiceGmail
         `ContactMatcher.kt` (2026-11-13, user report: dcon2000 heard
         as decon2000): `src/fixes.js` applies the curated dcon-family
@@ -189,6 +190,14 @@ must stay green and must keep `if-no-files-found: error`.
         safety net
       - Model push verified live: dialog intents ComposeIntent +
         AddBodyIntent, subject and dictation elicitation prompts
+      - KNOWN PLATFORM QUIRK (2026-11-13): Alexa+ intermittently
+        hijacks one-shot starts — even correct "ask email reader to
+        ..." phrasings get answered by Alexa+ natively with ZERO
+        requests reaching the skill (log-proven); replies also arrive
+        as Fallback or die on the ~8s answer window. Reliable
+        pattern: any skill command as door-opener, then all
+        commands in-session; in-session dispatch is stable. No
+        skill-side fix exists — Amazon routing only
 - [ ] Phase 6 — hardening, log share endpoint, verbose toggle,
       deploy workflow
 - [ ] Phase 7 — optional extras (mark as read, contacts by name,
