@@ -302,6 +302,17 @@ must stay green and must keep `if-no-files-found: error`.
       - NEXT: user approval → `ask smapi submit-skill-for-certification`
         → poll `get-certifications-list`/`get-certification-review`
         → `publish-skill` when certified
+      - SUBMITTED FOR CERTIFICATION (2026-11-14 03:29 UTC, user said
+        "submit"): `submit-skill-for-certification` with
+        `--publication-method MANUAL_PUBLISHING` (certify first, run
+        a final simulator check, then `publish-skill` — no user step
+        in between) and version message "First public release..." ;
+        `list-skills-for-vendor` confirms
+        `publicationStatus: CERTIFICATION`; `get-certifications-list`
+        returned 404 minutes after submission (async indexing —
+        recheck later; authoritative signal = publicationStatus).
+        When certified: verify simulator on certified stage, then
+        `ask smapi publish-skill`, then user's live-device test
 
 Note: plan Phase 1 (standalone Gmail proof script) is folded into
 Phase 3 — it would need an extra OAuth credential and a secret handoff
