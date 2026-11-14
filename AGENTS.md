@@ -215,6 +215,14 @@ must stay green and must keep `if-no-files-found: error`.
         Durable fix candidate = PUBLISH the skill (private/dev
         skills draw the worst Alexa+ interference); needs privacy
         policy page first
+      - LOCKOUT UPDATE (2026-11-14 08:10-08:23 CST): entry attempts
+        after the incident reached ZERO skill requests (CloudWatch
+        clean — logging was live, no [req] lines). Also note the
+        steal landed within ~9s of the skill's last in-session
+        response (8:03:51 PM CST skill hit, 8:04 PM native email) —
+        i.e. NOT only one-shot entries: even the active-session
+        confirmation was intercepted. "In-session = stable" from
+        2026-11-13 no longer holds on 2026-11-14.
       - Contacts lookup pulled forward from Phase 7 (2026-11-13,
         user request): `src/people.js` searches Google otherContacts
         (the Gmail autocomplete pool, scope
