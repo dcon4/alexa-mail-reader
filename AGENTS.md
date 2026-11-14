@@ -202,6 +202,19 @@ must stay green and must keep `if-no-files-found: error`.
         pattern: any skill command as door-opener, then all
         commands in-session; in-session dispatch is stable. No
         skill-side fix exists — Amazon routing only
+      - ESCALATED QUIRK (2026-11-14 ~02:04 UTC): Alexa+ did not just
+        answer canned — it **sent a real email through Amazon's
+        native email feature** (headers: From alexa@alexa.amazon.com,
+        "Sent from Alexa", subject "Alexa's response to your
+        'Testing A.W.S.' request") during the user's compose test,
+        with ZERO skill invocations at that time (CloudWatch: last
+        request 02:03:51, email 02:04) — so the skill's confirm-
+        before-send gate never had a chance to run; the gate itself
+        is intact (only ConfirmSendIntent can call sendMessage).
+        Consequence class = real outbound mail outside our gate.
+        Durable fix candidate = PUBLISH the skill (private/dev
+        skills draw the worst Alexa+ interference); needs privacy
+        policy page first
       - Contacts lookup pulled forward from Phase 7 (2026-11-13,
         user request): `src/people.js` searches Google otherContacts
         (the Gmail autocomplete pool, scope
