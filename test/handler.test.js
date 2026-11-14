@@ -616,6 +616,31 @@ test('requests for a different skill id are rejected', async () => {
   await assert.rejects(() => invoke(event), /mismatch/);
 });
 
+test('Lambda Function URL envelope events are unwrapped', async () => {
+  const inner = launchEvent();
+  inner.context = {
+    System: {
+      application: { applicationId: SKILL_ID },
+      user: { userId: 'amzn1.ask.account.test', accessToken: 'test-token' },
+    },
+  };
+  const wrapped = {
+    version: '2.0',
+    routeKey: '$default',
+    rawPath: '/',
+    rawQueryString: '',
+    headers: { 'content-type': 'application/json' },
+    requestContext: { http: { method: 'POST' } },
+    body: JSON.stringify(inner),
+    isBase64Encoded: false,
+  };
+  const res = await invoke(wrapped);
+  const speech = speechOf(res.response);
+  assert.match(speech, /Email reader/);
+  assert.match(speech, /2 unread messages/);
+  assert.equal(res.response.shouldEndSession, false);
+});
+
 test('body reading replaces long URLs with their domain', async () => {
   stubGmail({
     getMessageFull: async () =>

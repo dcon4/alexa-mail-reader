@@ -906,6 +906,24 @@ function hydrateFromStore(event) {
 }
 
 function handler(event, context, callback) {
+  // Lambda Function URL (API Gateway payload v2) envelope: the real
+  // Alexa request JSON arrives as a string in event.body.
+  if (
+    event &&
+    typeof event === 'object' &&
+    !event.request &&
+    typeof event.body === 'string'
+  ) {
+    try {
+      event = JSON.parse(
+        event.isBase64Encoded
+          ? Buffer.from(event.body, 'base64').toString('utf8')
+          : event.body,
+      );
+    } catch (e) {
+      // leave the event as-is; dispatch will reject it cleanly
+    }
+  }
   const session = event && event.session;
   const system = event && event.context && event.context.System;
   const appId =

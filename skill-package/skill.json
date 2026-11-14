@@ -23,7 +23,7 @@
     "apis": {
       "custom": {
         "endpoint": {
-          "uri": "https://detail-online-exemplary.ngrok-free.dev",
+          "uri": "https://daxqt3vkm3o4ozsej5fh3euno40tdqwt.lambda-url.us-east-1.on.aws/",
           "sslCertificateType": "Wildcard"
         }
       }
