@@ -273,6 +273,35 @@ must stay green and must keep `if-no-files-found: error`.
         store = DynamoDB, future)
 - [ ] Phase 7 — optional extras (mark as read, contacts by name,
       cross-session drafts, APL)
+- [ ] Phase 8 — publishing (2026-11-14, user said "prepare to
+      publish" — OVERRIDES plan section 4.3 "we are not publishing";
+      trigger = Alexa+ hijack escalation, native-send incident above)
+      - Privacy policy live: `docs/privacy-policy.html` served at
+        `https://dcon4.github.io/alexa-mail-reader/privacy-policy.html`
+        (GitHub Pages from `/docs`, enabled 2026-11-14, all URLs
+        200-verified)
+      - Full store listing in `skill-package/skill.json`:
+        name/summary/description/examplePhrases (3, all contain
+        "email reader")/keywords, icons `docs/icons/` 108+512 PNG
+        (PIL-generated blue envelope, pixel-verified), category
+        **COMMUNICATION** (server rejects PRODUCTIVITY, UTILITIES,
+        BUSINESS, LIFESTYLE, ENTERTAINMENT, EDUCATION —
+        INVALID_ENUM; COMMUNICATION accepted and fits email),
+        isAvailableWorldwide, testingInstructions (simulator-based,
+        reviewer-safe), privacyAndCompliance with usesPersonalInfo
+        true — `usesHealthInfo` MUST NOT be sent (server returns
+        DENIED_FEATURE_ACCESS for this vendor even when false)
+      - Manifest PUT verified 202 + server read-back (direct SMAPI
+        PUT with LWA token refreshed in-process from
+        `~/.ask/cli_config`; ask-cli itself hides 400 violation
+        bodies — `--full-response` does not help)
+      - `submit-skill-validation` 76d4de65-e7a2-4a48-97bb-a3eea66b908a:
+        REQUIRED "Initial functional tests" SUCCESSFUL; the only
+        FAILED check is "instant live update eligibility"
+        (RECOMMENDED importance — expected for a first publish)
+      - NEXT: user approval → `ask smapi submit-skill-for-certification`
+        → poll `get-certifications-list`/`get-certification-review`
+        → `publish-skill` when certified
 
 Note: plan Phase 1 (standalone Gmail proof script) is folded into
 Phase 3 — it would need an extra OAuth credential and a secret handoff

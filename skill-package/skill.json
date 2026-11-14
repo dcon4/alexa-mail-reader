@@ -29,7 +29,7 @@
       },
       "isAvailableWorldwide": true,
       "testingInstructions": "Full functionality needs a linked Gmail account. Unlinked state is itself testable: the skill replies with a link prompt and an Alexa app card.\n\nMain paths (simulator recommended for dev-stage reliability):\n1. \"ask email reader to read my email\" lists unread mail with counts and summaries. Then: \"read it\", \"next\", \"previous\", \"continue\", \"read message 3\", \"repeat\", \"search email from <name>\", \"how many unread\", \"stop\".\n2. Reply: open a message, say \"reply\", dictate the message, hear the full read-back, then \"send it\" to send or \"no\" to discard.\n3. Compose: say \"compose an email\"; give a recipient (an address spoken as name at gmail dot com, or a contact name), a subject or \"skip\"; dictate; hear the read-back with the recipient spelled letter by letter; \"send it\" confirms, \"no\" discards.\n\nAll three example phrases work verbatim. The skill sends no email unless a reviewer links an account and explicitly says \"send it\" after the read-back.",
-      "category": "PRODUCTIVITY"
+      "category": "COMMUNICATION"
     },
     "privacyAndCompliance": {
       "locales": {
@@ -41,8 +41,7 @@
       "usesPersonalInfo": true,
       "isChildDirected": false,
       "isExportCompliant": true,
-      "containsAds": false,
-      "usesHealthInfo": false
+      "containsAds": false
     },
     "apis": {
       "custom": {
