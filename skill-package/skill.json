@@ -1,10 +1,15 @@
 {
   "manifest": {
     "publishingInformation": {
+      "name": "Email Reader",
+      "description": "Email Reader lets Alexa read your Gmail inbox and send replies without touching your phone. Link your Google account once, then say \"Alexa, ask email reader to read my email\" to hear your unread messages: who they are from, their subjects, and the full message text read aloud in pieces you control with \"next\", \"previous\", \"continue\", and \"read message 3\". Ask \"how many unread\" for a count, or search email from any name. Reply to a message or compose a new one entirely by voice: dictate your message, hear it read back with the recipient spelled letter by letter, and confirm with \"send it\". Nothing the skill sends goes out without that spoken confirmation. Say \"stop\" to exit at any time.",
       "locales": {
         "en-US": {
           "name": "Email Reader",
-          "summary": "Reads your unread email and sends replies, by voice.",
+          "smallIconUri": "https://dcon4.github.io/alexa-mail-reader/icons/email-reader-108.png",
+          "largeIconUri": "https://dcon4.github.io/alexa-mail-reader/icons/email-reader-512.png",
+          "summary": "Reads your Gmail aloud and sends replies by voice.",
+          "description": "Email Reader lets Alexa read your Gmail inbox and send replies without touching your phone. Link your Google account once, then say \"Alexa, ask email reader to read my email\" to hear your unread messages: who they are from, their subjects, and the full message text read aloud in pieces you control with \"next\", \"previous\", \"continue\", and \"read message 3\". Ask \"how many unread\" for a count, or search email from any name. Reply to a message or compose a new one entirely by voice: dictate your message, hear it read back with the recipient spelled letter by letter, and confirm with \"send it\". Nothing the skill sends goes out without that spoken confirmation. Say \"stop\" to exit at any time.",
           "examplePhrases": [
             "Alexa, ask email reader to read my email",
             "Alexa, ask email reader how many unread",
@@ -14,11 +19,30 @@
             "email",
             "mail",
             "inbox",
-            "messages"
+            "messages",
+            "gmail",
+            "reply",
+            "voice",
+            "unread"
           ]
         }
       },
-      "category": "NEWS"
+      "isAvailableWorldwide": true,
+      "testingInstructions": "Full functionality needs a linked Gmail account. Unlinked state is itself testable: the skill replies with a link prompt and an Alexa app card.\n\nMain paths (simulator recommended for dev-stage reliability):\n1. \"ask email reader to read my email\" lists unread mail with counts and summaries. Then: \"read it\", \"next\", \"previous\", \"continue\", \"read message 3\", \"repeat\", \"search email from <name>\", \"how many unread\", \"stop\".\n2. Reply: open a message, say \"reply\", dictate the message, hear the full read-back, then \"send it\" to send or \"no\" to discard.\n3. Compose: say \"compose an email\"; give a recipient (an address spoken as name at gmail dot com, or a contact name), a subject or \"skip\"; dictate; hear the read-back with the recipient spelled letter by letter; \"send it\" confirms, \"no\" discards.\n\nAll three example phrases work verbatim. The skill sends no email unless a reviewer links an account and explicitly says \"send it\" after the read-back.",
+      "category": "PRODUCTIVITY"
+    },
+    "privacyAndCompliance": {
+      "locales": {
+        "en-US": {
+          "privacyPolicyUrl": "https://dcon4.github.io/alexa-mail-reader/privacy-policy.html"
+        }
+      },
+      "allowsPurchases": false,
+      "usesPersonalInfo": true,
+      "isChildDirected": false,
+      "isExportCompliant": true,
+      "containsAds": false,
+      "usesHealthInfo": false
     },
     "apis": {
       "custom": {
