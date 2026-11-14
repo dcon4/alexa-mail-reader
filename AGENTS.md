@@ -67,7 +67,11 @@ must stay green and must keep `if-no-files-found: error`.
         authtoken ROTATED 2026-11-12 via dashboard roll + one-time
         local paste form (port 18765) — the earlier chat-leaked value
         is dead; both config files (alexa + opencode) updated, tunnel
-        verified live on the new token, form and all its files removed
+        verified live on the new token, form and all its files
+        removed; SUPERSEDED 2026-11-14 — manifest now points at
+        Lambda; ngrok-alexa.service + alexa-local-server stay up as
+        fallback until the user's first live Lambda test passes,
+        then retire both (stop+disable)
       - Ad-hoc `node local-server` / `ngrok` processes die when agent
         tool sessions recycle (ngrok got a stop signal 2026-11-11
         17:03; the next three user asks all failed with Amazon's
