@@ -178,9 +178,8 @@ must stay green and must keep `if-no-files-found: error`.
       - Drafts live only in session attributes — never persisted to
         the position store (plan: losing an unsent draft on timeout
         is acceptable until Phase 7)
-      - 102 tests green (Phase 5 set of 89 + phonetic fixes + contacts
-        lookup: people API client/matching + compose/search
-        resolution)
+      - 103 tests green (Phase 5 set + phonetic fixes + contacts +
+        Function URL envelope unwrap)
       - Phonetic address fixes ported from VoiceGmail
         `ContactMatcher.kt` (2026-11-13, user report: dcon2000 heard
         as decon2000): `src/fixes.js` applies the curated dcon-family
@@ -215,6 +214,38 @@ must stay green and must keep `if-no-files-found: error`.
         REQUIRES THE USER TO RE-LINK GOOGLE before contacts resolve
 - [ ] Phase 6 — hardening, log share endpoint, verbose toggle,
       deploy workflow
+      - DEPLOY WORKFLOW DONE (2026-11-14): skill now runs on **AWS
+        Lambda** in account 160480076931 (new-style AWS signup,
+        us-east-1); function `email-reader-skill` (nodejs22.x,
+        handler `src/index.handler`, POSITION_STORE_PATH=/tmp),
+        Function URL
+        `https://daxqt3vkm3o4ozsej5fh3euno40tdqwt.lambda-url.us-east-1.on.aws/`
+        (AuthType NONE + BOTH resource permissions:
+        lambda:InvokeFunctionUrl AND lambda:InvokeFunction — the
+        second is required or anonymous calls get 403);
+        IAM user `email-reader-deploy` (keys in ~/.aws/credentials
+        mode 600 + GitHub secrets AWS_ACCESS_KEY_ID /
+        AWS_SECRET_ACCESS_KEY, never on a command line); CI has a
+        `deploy` job (needs: test, main-only) that zips
+        src+node_modules and runs update-function-code — verified
+        green (run 43542001603); manifest endpoint points at the
+        Function URL (sslCertificateType Wildcard); end-to-end
+        verified via simulate-skill (linked Gmail read through
+        Lambda) — AWS account was enrolled in an organization
+        (owner 0929...2369, same user email) whose service control
+        policies denied lambda/s3/apigateway/dynamodb until the
+        user upgraded the account (Paid Plan, settings.aws.com —
+        budget created for spend alert) and detached
+        `ManagedAccountSecurityControlPolicy` +
+        `AdvancedModeRegionRestrictionSecurityControlPolicy` from
+        the org root (FullAWSAccess SCP/RCP kept attached)
+      - Lambda Function URL events use **API Gateway payload v2**
+        (real Alexa JSON arrives in `event.body` as a string) —
+        `handler()` unwraps that envelope before dispatch; without
+        it every request 502s with "reading 'type'" errors
+      - `src/store.js` position file on Lambda lives at /tmp —
+        survives warm invocations, resets on cold start (durable
+        store = DynamoDB, future)
 - [ ] Phase 7 — optional extras (mark as read, contacts by name,
       cross-session drafts, APL)
 
