@@ -905,6 +905,68 @@ function hydrateFromStore(event) {
   }
 }
 
+function logReq(event) {
+  try {
+    const r = event && event.request;
+    if (!r) return;
+    const parts = ['[req]', r.type, (r.intent && r.intent.name) || ''];
+    if (r.dialogState) parts.push('dialog=' + r.dialogState);
+    if (r.intent && r.intent.slots) {
+      const vals = {};
+      for (const k of Object.keys(r.intent.slots)) {
+        const v = r.intent.slots[k] && r.intent.slots[k].value;
+        if (typeof v === 'string' && v) vals[k] = v.slice(0, 80);
+      }
+      if (Object.keys(vals).length) {
+        parts.push('slots=' + JSON.stringify(vals));
+      }
+    }
+    const attrs = (event.session && event.session.attributes) || {};
+    parts.push(
+      attrs.draft
+        ? 'draft=' +
+            (attrs.draft.mode || '?') +
+            '/to=' +
+            (attrs.draft.to ? 'y' : 'n') +
+            '/body' +
+            String(attrs.draft.body || '').length
+        : 'draft=-',
+    );
+    console.log(parts.join(' '));
+  } catch (e) {
+    // never let logging break a request
+  }
+}
+
+function logRes(res) {
+  try {
+    const resp = (res && res.response) || {};
+    const ssml =
+      (resp.outputSpeech &&
+        (resp.outputSpeech.ssml || resp.outputSpeech.text)) ||
+      '';
+    const dirs = (resp.directives || [])
+      .map((d) => d.type + (d.slotToElicit ? ':' + d.slotToElicit : ''))
+      .join(',');
+    const attrs = res.sessionAttributes || {};
+    const draft = attrs.draft
+      ? 'draft=' +
+        (attrs.draft.mode || '?') +
+        '/body' +
+        String(attrs.draft.body || '').length
+      : 'draft=-';
+    console.log(
+      '[res]',
+      'end=' + resp.shouldEndSession,
+      'dirs=[' + dirs + ']',
+      draft,
+      'speech=' + JSON.stringify(ssml.slice(0, 160)),
+    );
+  } catch (e) {
+    // never let logging break a response
+  }
+}
+
 function handler(event, context, callback) {
   // Lambda Function URL (API Gateway payload v2) envelope: the real
   // Alexa request JSON arrives as a string in event.body.
@@ -924,6 +986,7 @@ function handler(event, context, callback) {
       // leave the event as-is; dispatch will reject it cleanly
     }
   }
+  logReq(event);
   const session = event && event.session;
   const system = event && event.context && event.context.System;
   const appId =
@@ -935,7 +998,21 @@ function handler(event, context, callback) {
     return Promise.reject(err);
   }
   hydrateFromStore(event);
-  return coreHandler(event, context, callback);
+  const cb =
+    typeof callback === 'function'
+      ? (err, res) => {
+          if (res) logRes(res);
+          callback(err, res);
+        }
+      : undefined;
+  const ret = coreHandler(event, context, cb);
+  if (ret && typeof ret.then === 'function') {
+    return ret.then((res) => {
+      if (res) logRes(res);
+      return res;
+    });
+  }
+  return ret;
 }
 
 module.exports = { handler, SKILL_ID };
