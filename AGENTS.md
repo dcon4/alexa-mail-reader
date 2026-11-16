@@ -307,12 +307,22 @@ must stay green and must keep `if-no-files-found: error`.
         `--publication-method MANUAL_PUBLISHING` (certify first, run
         a final simulator check, then `publish-skill` — no user step
         in between) and version message "First public release..." ;
-        `list-skills-for-vendor` confirms
-        `publicationStatus: CERTIFICATION`; `get-certifications-list`
-        returned 404 minutes after submission (async indexing —
-        recheck later; authoritative signal = publicationStatus).
-        When certified: verify simulator on certified stage, then
-        `ask smapi publish-skill`, then user's live-device test
+        certification id `jfKRUHVW` completed 2026-11-16 06:18 UTC
+        with status SUCCEEDED (estimated 11-18 — two days early);
+        certified-stage manifest read-back verified (Lambda endpoint,
+        privacy URL, COMMUNICATION category)
+      - **PUBLISHED 2026-11-16 14:26 UTC**: `publish-skill` (no date
+        → immediate; status SCHEDULED → IN_PROGRESS → PUBLISHED),
+        `list-skills-for-vendor` shows `stage: live`,
+        `publicationStatus: PUBLISHED`; published stage was not
+        enabled on the developer account by default —
+        `set-skill-enablement -g live` (customerId from the auth
+        token, no flag) enabled it; final live-stage simulate-skill
+        SUCCESSFUL with real linked Gmail speech ("You have 25 or
+        more unread messages..."). Dev stage remains for iteration;
+        simulations on certified stage return 405 (sim works on
+        development and live only). Remaining: user's device test
+        ("Alexa, ask email reader how many unread") to close Phase 8
 
 Note: plan Phase 1 (standalone Gmail proof script) is folded into
 Phase 3 — it would need an extra OAuth credential and a secret handoff
