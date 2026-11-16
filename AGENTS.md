@@ -273,9 +273,11 @@ must stay green and must keep `if-no-files-found: error`.
         store = DynamoDB, future)
 - [ ] Phase 7 — optional extras (mark as read, contacts by name,
       cross-session drafts, APL)
-- [ ] Phase 8 — publishing (2026-11-14, user said "prepare to
+- [x] Phase 8 — publishing (2026-11-14, user said "prepare to
       publish" — OVERRIDES plan section 4.3 "we are not publishing";
-      trigger = Alexa+ hijack escalation, native-send incident above)
+      trigger = Alexa+ hijack escalation, native-send incident above;
+      CLOSED 2026-11-16: user's device test reached the cloud skill
+      with zero hijacks, 3 entries 8:28-8:41 PM CST)
       - Privacy policy live: `docs/privacy-policy.html` served at
         `https://dcon4.github.io/alexa-mail-reader/privacy-policy.html`
         (GitHub Pages from `/docs`, enabled 2026-11-14, all URLs
@@ -321,8 +323,11 @@ must stay green and must keep `if-no-files-found: error`.
         SUCCESSFUL with real linked Gmail speech ("You have 25 or
         more unread messages..."). Dev stage remains for iteration;
         simulations on certified stage return 405 (sim works on
-        development and live only). Remaining: user's device test
-        ("Alexa, ask email reader how many unread") to close Phase 8
+        development and live only). User's device test PASSED
+        (8:28/8:39/8:41 PM CST entries all logged in CloudWatch with
+        correct speech, zero hijacks) — old fallback retired
+        2026-11-16: ngrok-alexa.service + alexa-local-server.service
+        stop+disabled (re-enable only if Lambda ever fails)
 
 Note: plan Phase 1 (standalone Gmail proof script) is folded into
 Phase 3 — it would need an extra OAuth credential and a secret handoff
