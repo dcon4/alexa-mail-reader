@@ -10,6 +10,10 @@ process.env.POSITION_STORE_PATH = path.join(
   fs.mkdtempSync(path.join(os.tmpdir(), 'mail-reader-pos-')),
   'positions.json',
 );
+process.env.SETTINGS_PATH = path.join(
+  fs.mkdtempSync(path.join(os.tmpdir(), 'mail-reader-set-')),
+  'settings.json',
+);
 
 const { handler, SKILL_ID } = require('../src/index');
 const gmail = require('../src/gmail');
@@ -66,6 +70,8 @@ function stubGmail(overrides = {}) {
     overrides.getMessageFull || (async () => fullMessage('Hello world. All fine.'));
   gmail.sendMessage =
     overrides.sendMessage || (async () => ({ id: 'sent-1' }));
+  gmail.getProfile =
+    overrides.getProfile || (async () => 'self@example.test');
 }
 
 function stubPeople(overrides = {}) {
@@ -1014,4 +1020,150 @@ test('reply with no messages says to read mail first', async () => {
   stubGmail({ listMessageIds: async () => [] });
   const res = await invoke(intentEvent('ReplyIntent', { linked: true }));
   assert.match(speechOf(res.response), /no message open/);
+});
+
+test('verbose toggle off persists to the settings store', async () => {
+  const res = await invoke(
+    intentEvent('VerboseOffIntent', { linked: true }),
+  );
+  assert.match(speechOf(res.response), /Verbose logging is off/);
+  const settings = require('../src/settings');
+  assert.equal(settings.getVerbose('amzn1.ask.account.test'), false);
+});
+
+test('verbose toggle on restores the default', async () => {
+  const settings = require('../src/settings');
+  settings.setVerbose('amzn1.ask.account.test', false);
+  const res = await invoke(
+    intentEvent('VerboseOnIntent', { linked: true }),
+  );
+  assert.match(speechOf(res.response), /Verbose logging is on/);
+  assert.equal(settings.getVerbose('amzn1.ask.account.test'), true);
+});
+
+test('verbose defaults to on for a fresh user', () => {
+  const settings = require('../src/settings');
+  settings.setVerbose('some.other.user', false);
+  assert.equal(settings.getVerbose('brand.new.user'), true);
+  assert.equal(settings.getVerbose(undefined), true);
+});
+
+test('logs endpoint 404s without a token segment', async () => {
+  process.env.LOG_SHARE_TOKEN = 'unit-test-secret-token-abc';
+  try {
+    const res = await handler({ rawPath: '/logs' }, {});
+    assert.equal(res.statusCode, 404);
+  } finally {
+    delete process.env.LOG_SHARE_TOKEN;
+  }
+});
+
+test('logs endpoint 404s for a wrong token', async () => {
+  process.env.LOG_SHARE_TOKEN = 'unit-test-secret-token-abc';
+  try {
+    const res = await handler({ rawPath: '/logs/not-the-right-token' }, {});
+    assert.equal(res.statusCode, 404);
+    assert.equal(res.headers['content-type'], 'text/plain; charset=utf-8');
+  } finally {
+    delete process.env.LOG_SHARE_TOKEN;
+  }
+});
+
+test('logs endpoint 503s when no token is configured', async () => {
+  delete process.env.LOG_SHARE_TOKEN;
+  const res = await handler({ rawPath: '/logs/whatever' }, {});
+  assert.equal(res.statusCode, 503);
+});
+
+test('logs endpoint accepts the right token and reaches the fetch', async () => {
+  process.env.LOG_SHARE_TOKEN = 'unit-test-secret-token-abc';
+  try {
+    const res = await handler(
+      { rawPath: '/logs/unit-test-secret-token-abc' },
+      {},
+    );
+    // The AWS SDK client is not installed locally, so a valid token
+    // gets past auth and fails at the backend - proving the gate.
+    assert.equal(res.statusCode, 502);
+    assert.match(res.body, /Log fetch failed/);
+  } finally {
+    delete process.env.LOG_SHARE_TOKEN;
+  }
+});
+
+test('logs endpoint rejects non-GET methods', async () => {
+  const res = await handler(
+    {
+      rawPath: '/logs/anything',
+      requestContext: { http: { method: 'POST' } },
+    },
+    {},
+  );
+  assert.equal(res.statusCode, 405);
+});
+
+test('request logging never contains message content', async () => {
+  const lines = [];
+  const orig = console.log;
+  console.log = (...args) => {
+    lines.push(args.join(' '));
+  };
+  try {
+    await invoke(intentEvent('ReadUnreadIntent', { linked: true }));
+    await invoke(
+      intentEvent('AddBodyIntent', {
+        linked: true,
+        attributes: {
+          draft: {
+            mode: 'reply',
+            to: 'maya@gmail.com',
+            subject: 'Project update',
+            body: '',
+          },
+        },
+        slots: {
+          addedText: {
+            name: 'addedText',
+            value: 'secret sandwich recipe',
+            confirmationStatus: 'NONE',
+          },
+        },
+      }),
+    );
+  } finally {
+    console.log = orig;
+  }
+  const all = lines.join('\n');
+  assert.ok(all.includes('[req]'), 'request lines were logged');
+  assert.ok(all.includes('outcome=ok'), 'outcome recorded');
+  assert.ok(/\d+ms/.test(all), 'latency recorded');
+  assert.ok(!all.includes('Project update'), 'subject must not be logged');
+  assert.ok(
+    !all.includes('secret sandwich recipe'),
+    'dictated body must not be logged',
+  );
+  assert.ok(!all.includes('maya@gmail.com'), 'addresses must not be logged');
+  assert.ok(!all.includes('speech='), 'speech snippets must not be logged');
+});
+
+test('share logs emails the private link to the user', async () => {
+  process.env.LOG_SHARE_TOKEN = 'unit-test-secret-token-abc';
+  let sent = null;
+  stubGmail({
+    sendMessage: async (token, opts) => {
+      sent = opts;
+      return { id: 'sent-2' };
+    },
+  });
+  try {
+    const res = await invoke(intentEvent('ShareLogsIntent', { linked: true }));
+    assert.match(speechOf(res.response), /emailed your log link/);
+    assert.ok(sent, 'an email was sent');
+    assert.equal(sent.to, 'self@example.test');
+    assert.ok(sent.body.includes('/logs/unit-test-secret-token-abc'));
+    // the link must not leak into the spoken response or session log
+    assert.ok(!speechOf(res.response).includes('unit-test-secret-token'));
+  } finally {
+    delete process.env.LOG_SHARE_TOKEN;
+  }
 });

@@ -1,8 +1,20 @@
 'use strict';
 
+const logmod = require('./log');
+
 const API_BASE = 'https://gmail.googleapis.com/gmail/v1/users/me';
 const TIMEOUT_MS = 4000;
 const RETRY_DELAY_MS = 250;
+
+function endpointLabel(path) {
+  try {
+    const u = new URL(path);
+    const segs = u.pathname.split('/').filter(Boolean);
+    return segs.slice(-2).join('/');
+  } catch (e) {
+    return '?';
+  }
+}
 
 class GmailError extends Error {
   constructor(status, message) {
@@ -22,6 +34,7 @@ async function request(token, path, opts = {}) {
   const allowRetry = opts.allowRetry !== false;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  const started = Date.now();
   const headers = {
     Authorization: 'Bearer ' + token,
     Accept: 'application/json',
@@ -67,6 +80,13 @@ async function request(token, path, opts = {}) {
     console.log('[gmail]', res.status, detail || 'no error body');
     throw new GmailError(res.status, detail || 'http ' + res.status);
   }
+  logmod.vlog(
+    '[gmail]',
+    method,
+    endpointLabel(path),
+    res.status,
+    Date.now() - started + 'ms',
+  );
   return res.json();
 }
 
@@ -129,6 +149,11 @@ async function sendMessage(token, { to, subject, body, threadId, inReplyTo, refe
   });
 }
 
+async function getProfile(token) {
+  const data = await request(token, API_BASE + '/profile');
+  return data.emailAddress || '';
+}
+
 module.exports = {
   GmailError,
   listMessageIds,
@@ -137,4 +162,5 @@ module.exports = {
   getMessageFull,
   buildRaw,
   sendMessage,
+  getProfile,
 };

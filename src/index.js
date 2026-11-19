@@ -7,8 +7,13 @@ const sp = require('./speech');
 const store = require('./store');
 const fixes = require('./fixes');
 const people = require('./people');
+const logmod = require('./log');
+const settings = require('./settings');
+const logsEndpoint = require('./logs');
 
 const SKILL_ID = 'amzn1.ask.skill.9c554724-207c-464e-a0e2-ae3158077bf5';
+const FN_BASE =
+  'https://daxqt3vkm3o4ozsej5fh3euno40tdqwt.lambda-url.us-east-1.on.aws';
 const LIST_CAP = 25;
 const SUMMARY_CAP = 5;
 const CHUNK_SIZE = 2500;
@@ -29,6 +34,21 @@ const NO_UNREAD =
 const RECONNECTED_401 =
   'Your Gmail connection has expired. ' +
   'Open the Alexa app and reconnect Email reader.';
+
+// One log line per request (plan section 10): request id, intent,
+// message ids, latency, outcome. Never subjects, never bodies.
+let pendingLog = null;
+let reqOutcome = 'ok';
+
+function extractUserId(event) {
+  const sys = (event && event.context && event.context.System) || {};
+  const session = (event && event.session) || {};
+  return (
+    (sys.user && sys.user.userId) ||
+    (session.user && session.user.userId) ||
+    null
+  );
+}
 
 function isLinked(handlerInput) {
   const context = handlerInput.requestEnvelope.context || {};
@@ -97,6 +117,7 @@ function linkAccountResponse(handlerInput, state) {
 }
 
 function gmailErrorResponse(handlerInput, err, state) {
+  reqOutcome = 'gmail' + ((err && err.status) || '?');
   if (err && err.status === 401) {
     saveState(handlerInput, state || sessionState(handlerInput));
     return handlerInput.responseBuilder
@@ -125,6 +146,7 @@ async function loadUnread(state) {
   state.msgIndex = 0;
   state.chunkIndex = -1;
   state.unreadCount = ids.length;
+  logmod.vlog('[list]', 'unread=' + ids.length);
   return state;
 }
 
@@ -140,6 +162,7 @@ async function loadSearch(state, sender) {
   state.msgIndex = 0;
   state.chunkIndex = -1;
   state.unreadCount = ids.length;
+  logmod.vlog('[list]', 'search=' + ids.length);
   return state;
 }
 
@@ -159,6 +182,7 @@ async function loadLatest(state) {
   state.metas = metas;
   state.msgIndex = 0;
   state.chunkIndex = -1;
+  logmod.vlog('[list]', 'latest=1');
   return state;
 }
 
@@ -244,10 +268,17 @@ async function readCurrentBody(handlerInput, state) {
   const chunks = body.text ? textx.chunkText(body.text, CHUNK_SIZE) : [];
   if (!chunks.length) {
     state.chunkIndex = 0;
+    logmod.vlog('[chunk]', 'msg=' + (state.msgIndex + 1), 'chunks=0');
     return bodySpeech(state, body, 0);
   }
   const idx = 0;
   state.chunkIndex = idx;
+  logmod.vlog(
+    '[chunk]',
+    'msg=' + (state.msgIndex + 1),
+    'chunk=' + (idx + 1) + '/' + chunks.length,
+    'len=' + chunks[idx].length,
+  );
   return bodySpeech(state, body, idx);
 }
 
@@ -256,14 +287,26 @@ async function continueBody(handlerInput, state) {
   const chunks = body.text ? textx.chunkText(body.text, CHUNK_SIZE) : [];
   if (!chunks.length) {
     state.chunkIndex = 0;
+    logmod.vlog('[chunk]', 'msg=' + (state.msgIndex + 1), 'chunks=0');
     return bodySpeech(state, body, 0);
   }
   if (state.chunkIndex >= chunks.length - 1) {
     state.chunkIndex = 0;
+    logmod.vlog(
+      '[chunk]',
+      'msg=' + (state.msgIndex + 1),
+      'restart=1/' + chunks.length,
+    );
     return bodySpeech(state, body, 0);
   }
   const idx = state.chunkIndex + 1;
   state.chunkIndex = idx;
+  logmod.vlog(
+    '[chunk]',
+    'msg=' + (state.msgIndex + 1),
+    'chunk=' + (idx + 1) + '/' + chunks.length,
+    'len=' + chunks[idx].length,
+  );
   return bodySpeech(state, body, idx);
 }
 
@@ -787,6 +830,45 @@ state.draft = null;
           }
           break;
         }
+        case 'VerboseOnIntent':
+          settings.setVerbose(extractUserId(handlerInput.requestEnvelope), true);
+          logmod.setVerbose(true);
+          speech = 'Verbose logging is on.';
+          break;
+        case 'VerboseOffIntent':
+          settings.setVerbose(extractUserId(handlerInput.requestEnvelope), false);
+          logmod.setVerbose(false);
+          speech = 'Verbose logging is off.';
+          break;
+        case 'ShareLogsIntent': {
+          const token = state.token;
+          const email = await gmail.getProfile(token);
+          if (!email) {
+            speech = 'I could not look up your email address. ' + MENU;
+            break;
+          }
+          const shareToken = process.env.LOG_SHARE_TOKEN;
+          if (!shareToken) {
+            speech = 'Log sharing is not set up on this skill yet. ' + MENU;
+            break;
+          }
+          await gmail.sendMessage(token, {
+            to: email,
+            subject: 'Email Reader log link',
+            body:
+              'Your private log link for the Email Reader skill:\n\n' +
+              FN_BASE +
+              '/logs/' +
+              shareToken +
+              '\n\nIt shows the last few hundred log lines as plain text. ' +
+              'Anyone with this address can read your skill logs, so ' +
+              'treat it like a key and only share it with someone you ' +
+              'trust to debug with you.\n',
+          });
+          speech =
+            'I emailed your log link to your own Gmail address. ' + MENU;
+          break;
+        }
         case 'AMAZON.HelpIntent':
           speech = `Here is what you can say. ${MENU}`;
           break;
@@ -855,6 +937,7 @@ const ErrorHandler = {
     return true;
   },
   handle(handlerInput, error) {
+    reqOutcome = 'error';
     console.log('Error handled:', error.message);
     return keepOpen(
       handlerInput,
@@ -905,69 +988,94 @@ function hydrateFromStore(event) {
   }
 }
 
-function logReq(event) {
+// Exactly one line per request when the response is produced (plan
+// section 10): request id, intent, message ids, latency, outcome.
+// No slot values, no speech text, no subjects, no bodies.
+function beginLog(event, context) {
   try {
+    pendingLog = null;
+    reqOutcome = 'ok';
     const r = event && event.request;
     if (!r) return;
-    const parts = ['[req]', r.type, (r.intent && r.intent.name) || ''];
-    if (r.dialogState) parts.push('dialog=' + r.dialogState);
-    if (r.intent && r.intent.slots) {
-      const vals = {};
-      for (const k of Object.keys(r.intent.slots)) {
-        const v = r.intent.slots[k] && r.intent.slots[k].value;
-        if (typeof v === 'string' && v) vals[k] = v.slice(0, 80);
-      }
-      if (Object.keys(vals).length) {
-        parts.push('slots=' + JSON.stringify(vals));
-      }
-    }
     const attrs = (event.session && event.session.attributes) || {};
-    parts.push(
-      attrs.draft
-        ? 'draft=' +
-            (attrs.draft.mode || '?') +
-            '/to=' +
-            (attrs.draft.to ? 'y' : 'n') +
-            '/body' +
-            String(attrs.draft.body || '').length
-        : 'draft=-',
-    );
-    console.log(parts.join(' '));
+    pendingLog = {
+      id:
+        (context && context.awsRequestId) ||
+        (r.requestId ? String(r.requestId).slice(0, 8) : '-'),
+      type: r.type,
+      intent: (r.intent && r.intent.name) || '-',
+      dialog: r.dialogState || '-',
+      msgs: Array.isArray(attrs.msgIds) ? attrs.msgIds.length : 0,
+      draft: attrs.draft
+        ? (attrs.draft.mode || '?') +
+          '/' +
+          String(attrs.draft.body || '').length
+        : '-',
+      t0: Date.now(),
+    };
   } catch (e) {
     // never let logging break a request
   }
 }
 
-function logRes(res) {
+function finishLog(res) {
   try {
-    const resp = (res && res.response) || {};
-    const ssml =
-      (resp.outputSpeech &&
-        (resp.outputSpeech.ssml || resp.outputSpeech.text)) ||
-      '';
-    const dirs = (resp.directives || [])
-      .map((d) => d.type + (d.slotToElicit ? ':' + d.slotToElicit : ''))
-      .join(',');
-    const attrs = res.sessionAttributes || {};
-    const draft = attrs.draft
-      ? 'draft=' +
-        (attrs.draft.mode || '?') +
-        '/body' +
-        String(attrs.draft.body || '').length
-      : 'draft=-';
-    console.log(
-      '[res]',
-      'end=' + resp.shouldEndSession,
-      'dirs=[' + dirs + ']',
-      draft,
-      'speech=' + JSON.stringify(ssml.slice(0, 160)),
-    );
+    if (!pendingLog) return;
+    const p = pendingLog;
+    pendingLog = null;
+    const parts = [
+      '[req]',
+      'id=' + p.id,
+      p.type,
+      p.intent,
+      'dialog=' + p.dialog,
+      'msgs=' + p.msgs,
+      'draft=' + p.draft,
+      Date.now() - p.t0 + 'ms',
+      'outcome=' + reqOutcome,
+    ];
+    if (res && res.response) {
+      const resp = res.response;
+      const dirs = (resp.directives || [])
+        .map((d) => d.type + (d.slotToElicit ? ':' + d.slotToElicit : ''))
+        .join(',');
+      parts.push('end=' + resp.shouldEndSession);
+      if (dirs) parts.push('dirs=[' + dirs + ']');
+      const ssml =
+        (resp.outputSpeech &&
+          (resp.outputSpeech.ssml || resp.outputSpeech.text)) ||
+        '';
+      parts.push('speechLen=' + ssml.length);
+    }
+    console.log(parts.join(' '));
   } catch (e) {
     // never let logging break a response
   }
 }
 
 function handler(event, context, callback) {
+  // Capture Function URL routing data BEFORE unwrapping: the v2
+  // envelope carries rawPath; the inner Alexa JSON does not.
+  const rawPath = event && event.rawPath;
+  const method =
+    (event &&
+      event.requestContext &&
+      event.requestContext.http &&
+      event.requestContext.http.method) ||
+    '';
+
+  // Token-protected log-share endpoint (plan section 10).
+  if (rawPath && rawPath.indexOf('/logs') === 0) {
+    if (method && method !== 'GET') {
+      return Promise.resolve({
+        statusCode: 405,
+        headers: { 'content-type': 'text/plain; charset=utf-8' },
+        body: 'Method not allowed.',
+      });
+    }
+    return logsEndpoint.handle(rawPath);
+  }
+
   // Lambda Function URL (API Gateway payload v2) envelope: the real
   // Alexa request JSON arrives as a string in event.body.
   if (
@@ -986,29 +1094,34 @@ function handler(event, context, callback) {
       // leave the event as-is; dispatch will reject it cleanly
     }
   }
-  logReq(event);
   const session = event && event.session;
   const system = event && event.context && event.context.System;
   const appId =
     (session && session.application && session.application.applicationId) ||
     (system && system.application && system.application.applicationId);
   if (appId && appId !== SKILL_ID) {
+    reqOutcome = 'error';
     const err = new Error('application id mismatch');
     if (typeof callback === 'function') return callback(err);
     return Promise.reject(err);
   }
+
+  // Verbose toggle: stored per-user setting, default on (plan 10).
+  logmod.setVerbose(settings.getVerbose(extractUserId(event)));
+
   hydrateFromStore(event);
+  beginLog(event, context);
   const cb =
     typeof callback === 'function'
       ? (err, res) => {
-          if (res) logRes(res);
+          if (res) finishLog(res);
           callback(err, res);
         }
       : undefined;
   const ret = coreHandler(event, context, cb);
   if (ret && typeof ret.then === 'function') {
     return ret.then((res) => {
-      if (res) logRes(res);
+      if (res) finishLog(res);
       return res;
     });
   }

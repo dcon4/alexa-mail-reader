@@ -212,6 +212,40 @@
             "what's my unread count",
             "count my unread"
           ]
+        },
+        {
+          "name": "VerboseOnIntent",
+          "slots": [],
+          "samples": [
+            "enable verbose logging",
+            "turn on verbose logging",
+            "start verbose logging",
+            "verbose logging on",
+            "verbose on"
+          ]
+        },
+        {
+          "name": "VerboseOffIntent",
+          "slots": [],
+          "samples": [
+            "disable verbose logging",
+            "turn off verbose logging",
+            "stop verbose logging",
+            "verbose logging off",
+            "verbose off"
+          ]
+        },
+        {
+          "name": "ShareLogsIntent",
+          "slots": [],
+          "samples": [
+            "share logs",
+            "share the logs",
+            "send me the logs",
+            "email me the logs",
+            "send the log link",
+            "share the log link"
+          ]
         }
       ]
     },
